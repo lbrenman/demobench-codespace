@@ -3,12 +3,16 @@
 const fs   = require('fs');
 const path = require('path');
 
-const SERVICES_ROOT = path.join(__dirname, '../../../services');
+// Inside Docker, services are mounted at /app/services
+// Outside Docker (dev), they live three levels up from src/lib/
+const SERVICES_ROOT = fs.existsSync('/app/services')
+  ? '/app/services'
+  : path.join(__dirname, '../../../services');
 
 let _cache = null;
 
 /**
- * Reads all services/*/service.json files and returns them as an array.
+ * Reads all service.json manifests from the services directory and returns them as an array.
  * Results are cached in memory. Call loadServices(true) to force a reload.
  */
 function loadServices(forceReload = false) {
@@ -45,6 +49,7 @@ function loadServices(forceReload = false) {
   });
 
   _cache = services;
+  console.log(`[manifest] Loaded ${services.length} services from ${SERVICES_ROOT}`);
   return services;
 }
 

@@ -2,40 +2,23 @@
 
 A unified GitHub Codespace that bundles multiple demo and integration-testing services — APIs, streaming servers, AI tools, security services, and observability platforms — all orchestrated from a single dashboard.
 
-[![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/lbrenman/demobench-codespace)
+[![Open in GitHub Codespaces](https://codespaces.new/lbrenman/demobench-codespace/badge.svg)](https://codespaces.new/lbrenman/demobench-codespace)
 
 ---
 
 ## Table of Contents
 
-- [DemoBench Codespace](#demobench-codespace)
-  - [Table of Contents](#table-of-contents)
-  - [Quick Start](#quick-start)
-    - [1. Open in GitHub Codespaces](#1-open-in-github-codespaces)
-    - [2. Configure your `.env`](#2-configure-your-env)
-    - [3. Start services](#3-start-services)
-    - [4. Open the Dashboard](#4-open-the-dashboard)
-  - [Services](#services)
-  - [Dashboard](#dashboard)
-  - [Starting and Stopping Services](#starting-and-stopping-services)
-    - [Profiles](#profiles)
-    - [Common commands](#common-commands)
-    - [Starting a single service without its full profile](#starting-a-single-service-without-its-full-profile)
-  - [Environment Variables](#environment-variables)
-  - [Data Persistence](#data-persistence)
-    - [Resetting data](#resetting-data)
-  - [Service Dependencies](#service-dependencies)
-  - [Special Setup: SFTP](#special-setup-sftp)
-  - [Special Setup: FHIR Web App](#special-setup-fhir-web-app)
-  - [Adding a New Service](#adding-a-new-service)
-    - [1. Create `services/<your-service>/service.json`](#1-create-servicesyour-serviceservicejson)
-    - [2. Add your service to `docker-compose.yml`](#2-add-your-service-to-docker-composeyml)
-    - [3. Add env vars to `.env.example`](#3-add-env-vars-to-envexample)
-    - [4. Regenerate the README service table](#4-regenerate-the-readme-service-table)
-    - [That's it](#thats-it)
-  - [Architecture](#architecture)
-    - [Design Principles](#design-principles)
-    - [Port Allocation](#port-allocation)
+- [Quick Start](#quick-start)
+- [Services](#services)
+- [Dashboard](#dashboard)
+- [Starting and Stopping Services](#starting-and-stopping-services)
+- [Environment Variables](#environment-variables)
+- [Data Persistence](#data-persistence)
+- [Service Dependencies](#service-dependencies)
+- [Special Setup: SFTP](#special-setup-sftp)
+- [Special Setup: FHIR Web App](#special-setup-fhir-web-app)
+- [Adding a New Service](#adding-a-new-service)
+- [Architecture](#architecture)
 
 ---
 

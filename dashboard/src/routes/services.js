@@ -2,11 +2,12 @@
 
 const express  = require('express');
 const router   = express.Router();
+const fs = require('fs');
 const { loadServices }               = require('../lib/manifest');
 const { listContainers, composeCommand } = require('../lib/docker');
 const { checkAllServices }           = require('../lib/health');
 const { logActivity }                = require('../lib/db');
-const fs = require('fs');
+
 const path = require('path');
 
 // GET /api/services
@@ -18,7 +19,7 @@ router.get('/', async (_req, res) => {
     const health      = await checkAllServices(services);
 
     // Read current .env to check for missing required secrets
-    const envPath = path.join(__dirname, '../../../../.env');
+    const envPath = fs.existsSync('/app/.env') ? '/app/.env' : path.join(__dirname, '../../../../.env');
     const envContent = fs.existsSync(envPath) ? fs.readFileSync(envPath, 'utf8') : '';
     const envKeys = new Set(
       envContent.split('\n')
