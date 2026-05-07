@@ -113,6 +113,7 @@ services:
       dockerfile: Dockerfile
     profiles: [apis, all]
     <<: *restart
+    command: sh -c "node src/db/migrate.js && node src/db/seed.js && node src/index.js"
     environment:
       PORT: ${MOCK_API_PORT:-3000}
       AUTH_MODE: ${MOCK_API_AUTH_MODE:-apikey}
@@ -140,6 +141,7 @@ services:
       dockerfile: Dockerfile
     profiles: [apis, all]
     <<: *restart
+    command: sh -c "node src/db/migrate.js && node src/data/seed.js && node src/index.js"
     environment:
       PORT: ${FHIR_API_PORT:-3001}
       AUTH_MODE: ${FHIR_API_AUTH_MODE:-apikey}
