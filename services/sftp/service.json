@@ -1,0 +1,16 @@
+{
+  "id": "sftp",
+  "name": "SFTP Server",
+  "description": "SFTP server using atmoz/sftp. Upload files to ./services/sftp/upload/. Default credentials: foo/pass on port 3022.",
+  "profile": "sftp",
+  "composeService": "sftp",
+  "port": 3022,
+  "healthPath": null,
+  "uiPath": null,
+  "category": "Infra",
+  "dependsOn": [],
+  "requiredSecrets": ["NGROK_AUTHTOKEN"],
+  "tags": ["sftp", "file-transfer"],
+  "docsUrl": "https://github.com/lbrenman/sftp-codespace",
+  "notes": "Codespaces only forward HTTP ports. To expose SFTP externally, run an ngrok TCP tunnel manually: ./ngrok tcp 3022. See README for full ngrok setup instructions. Connect locally with: sftp -P 3022 foo@localhost"
+}

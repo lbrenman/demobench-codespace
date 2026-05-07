@@ -1,0 +1,15 @@
+# OpenTelemetry core
+opentelemetry-api==1.22.0
+opentelemetry-sdk==1.22.0
+
+# OpenTelemetry exporters
+opentelemetry-exporter-otlp==1.22.0
+opentelemetry-exporter-otlp-proto-grpc==1.22.0
+opentelemetry-exporter-otlp-proto-http==1.22.0
+
+# gRPC and protobuf
+grpcio==1.60.0
+protobuf==4.25.1
+
+# Additional instrumentation (optional)
+opentelemetry-instrumentation==0.43b0

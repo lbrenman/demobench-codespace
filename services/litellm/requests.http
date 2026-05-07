@@ -1,0 +1,60 @@
+### LiteLLM Proxy - Sample Requests
+### Uses the REST Client VS Code extension (humao.rest-client)
+### Set your master key in .env or update the @masterKey variable below
+
+@baseUrl = http://localhost:4000
+@masterKey = {{$dotenv LITELLM_MASTER_KEY}}
+
+### Health Check
+GET {{baseUrl}}/health
+
+###
+
+### List available models
+GET {{baseUrl}}/v1/models
+Authorization: Bearer {{masterKey}}
+
+###
+
+### Chat Completion - OpenAI model
+POST {{baseUrl}}/v1/chat/completions
+Content-Type: application/json
+Authorization: Bearer {{masterKey}}
+
+{
+  "model": "gpt-4o-mini",
+  "messages": [
+    { "role": "user", "content": "What is 2 + 2? Answer in one word." }
+  ],
+  "max_tokens": 10
+}
+
+###
+
+### Chat Completion - Claude model
+POST {{baseUrl}}/v1/chat/completions
+Content-Type: application/json
+Authorization: Bearer {{masterKey}}
+
+{
+  "model": "claude-haiku",
+  "messages": [
+    { "role": "user", "content": "What is 2 + 2? Answer in one word." }
+  ],
+  "max_tokens": 10
+}
+
+###
+
+### Streaming Chat Completion
+POST {{baseUrl}}/v1/chat/completions
+Content-Type: application/json
+Authorization: Bearer {{masterKey}}
+
+{
+  "model": "gpt-4o-mini",
+  "stream": true,
+  "messages": [
+    { "role": "user", "content": "Count from 1 to 5 slowly." }
+  ]
+}

@@ -1,0 +1,16 @@
+{
+  "id": "jaeger",
+  "name": "Jaeger Tracing",
+  "description": "Jaeger all-in-one distributed tracing platform. Accepts OTLP traces via gRPC (14250) and HTTP (14268). In-memory storage — traces are lost on restart.",
+  "profile": "observability",
+  "composeService": "jaeger",
+  "port": 16686,
+  "healthPath": "/",
+  "uiPath": "/",
+  "category": "Observability",
+  "dependsOn": [],
+  "requiredSecrets": [],
+  "tags": ["tracing", "opentelemetry", "observability"],
+  "docsUrl": "https://github.com/lbrenman/jaeger-codespace",
+  "notes": "Uses in-memory storage. Traces do not persist across restarts. Use Elasticsearch or Cassandra backend for persistence."
+}

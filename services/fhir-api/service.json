@@ -1,0 +1,16 @@
+{
+  "id": "fhir-api",
+  "name": "FHIR R4 API",
+  "description": "FHIR R4 compliant REST API with 15 clinical resources (Patient, Observation, Condition, Encounter, etc.), API key auth, and PostgreSQL persistence.",
+  "profile": "apis",
+  "composeService": "fhir-api",
+  "port": 3001,
+  "healthPath": "/health",
+  "uiPath": "/api-docs",
+  "category": "APIs",
+  "dependsOn": [],
+  "requiredSecrets": [],
+  "tags": ["fhir", "healthcare", "rest", "hl7"],
+  "docsUrl": "https://github.com/lbrenman/fhir-r4-api-codepsace",
+  "notes": null
+}

@@ -1,0 +1,16 @@
+{
+  "id": "new-relic-otel",
+  "name": "New Relic OTel Collector",
+  "description": "OpenTelemetry Collector that receives traces, logs, and metrics via OTLP and forwards them to New Relic. Requires a New Relic license key.",
+  "profile": "observability",
+  "composeService": "new-relic-otel",
+  "port": 4318,
+  "healthPath": "/",
+  "uiPath": "/",
+  "category": "Observability",
+  "dependsOn": [],
+  "requiredSecrets": ["NEW_RELIC_LICENSE_KEY"],
+  "tags": ["opentelemetry", "observability", "newrelic", "tracing"],
+  "docsUrl": "https://github.com/lbrenman/New-Relic-OTel-Collector-CodeSpace",
+  "notes": "NEW_RELIC_LICENSE_KEY is required. Get yours at https://one.newrelic.com/admin-portal/api-keys/home — use the License Key (starts with NRAK-). Health check is on port 13133."
+}

@@ -1,0 +1,16 @@
+{
+  "id": "fhir-web",
+  "name": "FHIR R4 Web App",
+  "description": "Browser UI for the FHIR R4 API. Browse, filter, create, edit, and delete FHIR resources. Requires fhir-api to be running and FHIR_WEB_API_BASE_URL to be set correctly.",
+  "profile": "apis",
+  "composeService": "fhir-web",
+  "port": 3002,
+  "healthPath": "/health",
+  "uiPath": "/",
+  "category": "APIs",
+  "dependsOn": ["fhir-api"],
+  "requiredSecrets": [],
+  "tags": ["fhir", "healthcare", "ui"],
+  "docsUrl": "https://github.com/lbrenman/fhir-r4-web-codespace",
+  "notes": "Requires fhir-api to be running. In Codespaces, set FHIR_WEB_API_BASE_URL in .env to the forwarded port 3001 URL (e.g. https://your-codespace-3001.preview.app.github.dev)."
+}

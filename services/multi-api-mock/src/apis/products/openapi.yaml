@@ -1,0 +1,185 @@
+tags:
+  - name: Products
+    description: Manage product catalog — items with pricing, inventory, and categories
+
+components:
+  schemas:
+    Product:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        name:
+          type: string
+          example: API Gateway Pro License
+        sku:
+          type: string
+          example: AGW-PRO-001
+        description:
+          type: string
+        category:
+          type: string
+          example: Software
+        price:
+          type: number
+          format: float
+          example: 2499.99
+        currency:
+          type: string
+          example: USD
+        stock_quantity:
+          type: integer
+          example: 999
+        weight_kg:
+          type: number
+          format: float
+          example: 0
+        is_active:
+          type: boolean
+          example: true
+        image_url:
+          type: string
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    ProductInput:
+      type: object
+      required:
+        - name
+        - sku
+        - price
+      properties:
+        name:
+          type: string
+          example: API Gateway Pro License
+        sku:
+          type: string
+          example: AGW-PRO-001
+        description:
+          type: string
+        category:
+          type: string
+        price:
+          type: number
+          format: float
+          example: 2499.99
+        currency:
+          type: string
+          default: USD
+        stock_quantity:
+          type: integer
+          default: 0
+        weight_kg:
+          type: number
+          format: float
+        is_active:
+          type: boolean
+          default: true
+        image_url:
+          type: string
+
+paths:
+  /products:
+    get:
+      summary: List products (paginated)
+      tags: [Products]
+      parameters:
+        - in: query
+          name: page
+          schema:
+            type: integer
+            default: 1
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 10
+      responses:
+        "200":
+          description: Paginated list of products
+        "401":
+          description: Unauthorized
+
+    post:
+      summary: Create a product
+      tags: [Products]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ProductInput"
+      responses:
+        "201":
+          description: Product created
+        "400":
+          description: Validation error
+        "409":
+          description: Duplicate SKU
+
+  /products/{id}:
+    get:
+      summary: Get product by ID
+      tags: [Products]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Product found
+        "404":
+          description: Product not found
+
+    put:
+      summary: Update a product
+      tags: [Products]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ProductInput"
+      responses:
+        "200":
+          description: Product updated
+        "404":
+          description: Product not found
+
+    delete:
+      summary: Delete a product
+      tags: [Products]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Product deleted
+        "404":
+          description: Product not found
+
+  /products/health:
+    get:
+      summary: Products API health check
+      tags: [Products]
+      security: []
+      responses:
+        "200":
+          description: API is healthy

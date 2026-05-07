@@ -1,0 +1,16 @@
+{
+  "id": "keycloak",
+  "name": "Keycloak",
+  "description": "Open-source Identity and Access Management. Provides OAuth2/OIDC/SAML. Default admin credentials: admin/admin. Uses a dedicated Postgres database.",
+  "profile": "security",
+  "composeService": "keycloak",
+  "port": 8080,
+  "healthPath": "/health/ready",
+  "uiPath": "/admin",
+  "category": "Security",
+  "dependsOn": [],
+  "requiredSecrets": [],
+  "tags": ["oauth2", "oidc", "auth", "identity"],
+  "docsUrl": "https://github.com/lbrenman/keycloak-dev-codespace",
+  "notes": "Uses a dedicated Postgres instance (keycloak-db). Default credentials are admin/admin — change after first login. Place realm JSON exports in services/keycloak/imports/ to auto-import on startup."
+}

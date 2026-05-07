@@ -1,0 +1,11 @@
+{
+  "name": "demobench-codespace",
+  "version": "1.0.0",
+  "description": "DemoBench — unified GitHub Codespace with multiple demo services",
+  "private": true,
+  "scripts": {
+    "docs": "node scripts/generate-docs.js",
+    "dashboard:dev": "cd dashboard && npm run dev",
+    "dashboard:build": "cd dashboard && npm run build"
+  }
+}

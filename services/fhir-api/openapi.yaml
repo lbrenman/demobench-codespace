@@ -1,0 +1,1470 @@
+openapi: 3.0.0
+info:
+  title: Axway Amplify FHIR R4 API
+  version: 4.0.1
+  description: |
+    FHIR R4 compliant REST API with 15 core clinical resources.
+    Secured via API key. Supports mock (in-memory) and PostgreSQL persistence modes.
+    
+    **Authentication:** Include `x-api-key: <your-api-key>` in all requests.
+    
+    **FHIR Bundle:** List responses return a FHIR Bundle (searchset) with pagination metadata.
+    
+    **Resources implemented:** Patient, Observation, Condition, Encounter, Medication,
+    MedicationRequest, Practitioner, Organization, AllergyIntolerance, Procedure,
+    DiagnosticReport, Appointment, Immunization, CarePlan, Location.
+  contact:
+    name: Axway Healthcare Integration Team
+    url: https://www.axway.com/en/products/amplify-fusion
+  license:
+    name: Apache 2.0
+    url: https://www.apache.org/licenses/LICENSE-2.0
+
+servers:
+  - url: http://localhost:3000
+    description: Local development / Codespaces
+
+components:
+  securitySchemes:
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: x-api-key
+      description: API key for authentication. Set API_KEY in your .env file.
+
+  schemas:
+    OperationOutcome:
+      type: object
+      description: FHIR OperationOutcome — returned for errors
+      properties:
+        resourceType:
+          type: string
+          example: OperationOutcome
+        issue:
+          type: array
+          items:
+            type: object
+            properties:
+              severity:
+                type: string
+                enum: [fatal, error, warning, information]
+              code:
+                type: string
+              diagnostics:
+                type: string
+
+    Bundle:
+      type: object
+      description: FHIR Bundle (searchset) returned by list endpoints
+      properties:
+        resourceType:
+          type: string
+          example: Bundle
+        type:
+          type: string
+          example: searchset
+        total:
+          type: integer
+        pagination:
+          $ref: '#/components/schemas/PaginationMeta'
+        entry:
+          type: array
+          items:
+            type: object
+            properties:
+              resource:
+                type: object
+
+    PaginationMeta:
+      type: object
+      properties:
+        total:
+          type: integer
+          example: 42
+        page:
+          type: integer
+          example: 1
+        limit:
+          type: integer
+          example: 10
+        totalPages:
+          type: integer
+          example: 5
+        hasNext:
+          type: boolean
+        hasPrev:
+          type: boolean
+
+    Patient:
+      type: object
+      description: FHIR R4 Patient resource
+      properties:
+        resourceType:
+          type: string
+          example: Patient
+        id:
+          type: string
+          example: pat-001
+        active:
+          type: boolean
+        name:
+          type: array
+          items:
+            type: object
+            properties:
+              use: { type: string, example: official }
+              family: { type: string, example: Smith }
+              given:
+                type: array
+                items: { type: string }
+        telecom:
+          type: array
+          items:
+            type: object
+            properties:
+              system: { type: string, example: phone }
+              value: { type: string }
+              use: { type: string }
+        gender:
+          type: string
+          enum: [male, female, other, unknown]
+        birthDate:
+          type: string
+          format: date
+          example: "1975-04-12"
+        address:
+          type: array
+          items:
+            type: object
+        identifier:
+          type: array
+          items:
+            type: object
+        meta:
+          type: object
+
+    Observation:
+      type: object
+      description: FHIR R4 Observation resource
+      properties:
+        resourceType:
+          type: string
+          example: Observation
+        id:
+          type: string
+        status:
+          type: string
+          enum: [registered, preliminary, final, amended, corrected, cancelled, entered-in-error, unknown]
+        category:
+          type: array
+          items: { type: object }
+        code:
+          type: object
+          description: Coded observation type (LOINC recommended)
+        subject:
+          type: object
+          description: Patient reference
+        effectiveDateTime:
+          type: string
+          format: date-time
+        valueQuantity:
+          type: object
+          properties:
+            value: { type: number }
+            unit: { type: string }
+            system: { type: string }
+        component:
+          type: array
+          items: { type: object }
+        meta:
+          type: object
+
+    Condition:
+      type: object
+      description: FHIR R4 Condition resource
+      properties:
+        resourceType:
+          type: string
+          example: Condition
+        id:
+          type: string
+        clinicalStatus:
+          type: object
+        verificationStatus:
+          type: object
+        category:
+          type: array
+          items: { type: object }
+        severity:
+          type: object
+        code:
+          type: object
+        subject:
+          type: object
+        onsetDateTime:
+          type: string
+        abatementDateTime:
+          type: string
+        recordedDate:
+          type: string
+        meta:
+          type: object
+
+    Encounter:
+      type: object
+      description: FHIR R4 Encounter resource
+      properties:
+        resourceType:
+          type: string
+          example: Encounter
+        id:
+          type: string
+        status:
+          type: string
+          enum: [planned, arrived, triaged, in-progress, onleave, finished, cancelled]
+        class:
+          type: object
+        type:
+          type: array
+          items: { type: object }
+        subject:
+          type: object
+        period:
+          type: object
+          properties:
+            start: { type: string, format: date-time }
+            end: { type: string, format: date-time }
+        meta:
+          type: object
+
+    Medication:
+      type: object
+      description: FHIR R4 Medication resource
+      properties:
+        resourceType:
+          type: string
+          example: Medication
+        id:
+          type: string
+        code:
+          type: object
+          description: RxNorm coding recommended
+        status:
+          type: string
+          enum: [active, inactive, entered-in-error]
+        form:
+          type: object
+        meta:
+          type: object
+
+    MedicationRequest:
+      type: object
+      description: FHIR R4 MedicationRequest resource
+      properties:
+        resourceType:
+          type: string
+          example: MedicationRequest
+        id:
+          type: string
+        status:
+          type: string
+        intent:
+          type: string
+        medicationReference:
+          type: object
+        subject:
+          type: object
+        authoredOn:
+          type: string
+          format: date
+        requester:
+          type: object
+        dosageInstruction:
+          type: array
+          items: { type: object }
+        meta:
+          type: object
+
+    Practitioner:
+      type: object
+      description: FHIR R4 Practitioner resource
+      properties:
+        resourceType:
+          type: string
+          example: Practitioner
+        id:
+          type: string
+        active:
+          type: boolean
+        name:
+          type: array
+          items: { type: object }
+        telecom:
+          type: array
+          items: { type: object }
+        gender:
+          type: string
+        qualification:
+          type: array
+          items: { type: object }
+        meta:
+          type: object
+
+    Organization:
+      type: object
+      description: FHIR R4 Organization resource
+      properties:
+        resourceType:
+          type: string
+          example: Organization
+        id:
+          type: string
+        active:
+          type: boolean
+        name:
+          type: string
+        type:
+          type: array
+          items: { type: object }
+        telecom:
+          type: array
+          items: { type: object }
+        address:
+          type: array
+          items: { type: object }
+        meta:
+          type: object
+
+    AllergyIntolerance:
+      type: object
+      description: FHIR R4 AllergyIntolerance resource
+      properties:
+        resourceType:
+          type: string
+          example: AllergyIntolerance
+        id:
+          type: string
+        clinicalStatus:
+          type: object
+        verificationStatus:
+          type: object
+        type:
+          type: string
+          enum: [allergy, intolerance]
+        category:
+          type: array
+          items:
+            type: string
+            enum: [food, medication, environment, biologic]
+        criticality:
+          type: string
+          enum: [low, high, unable-to-assess]
+        code:
+          type: object
+        patient:
+          type: object
+        reaction:
+          type: array
+          items: { type: object }
+        meta:
+          type: object
+
+    Procedure:
+      type: object
+      description: FHIR R4 Procedure resource
+      properties:
+        resourceType:
+          type: string
+          example: Procedure
+        id:
+          type: string
+        status:
+          type: string
+        code:
+          type: object
+        subject:
+          type: object
+        encounter:
+          type: object
+        performedDateTime:
+          type: string
+          format: date-time
+        performedPeriod:
+          type: object
+        performer:
+          type: array
+          items: { type: object }
+        meta:
+          type: object
+
+    DiagnosticReport:
+      type: object
+      description: FHIR R4 DiagnosticReport resource
+      properties:
+        resourceType:
+          type: string
+          example: DiagnosticReport
+        id:
+          type: string
+        status:
+          type: string
+        category:
+          type: array
+          items: { type: object }
+        code:
+          type: object
+        subject:
+          type: object
+        effectiveDateTime:
+          type: string
+          format: date-time
+        issued:
+          type: string
+          format: date-time
+        result:
+          type: array
+          items: { type: object }
+        conclusion:
+          type: string
+        meta:
+          type: object
+
+    Appointment:
+      type: object
+      description: FHIR R4 Appointment resource
+      properties:
+        resourceType:
+          type: string
+          example: Appointment
+        id:
+          type: string
+        status:
+          type: string
+          enum: [proposed, pending, booked, arrived, fulfilled, cancelled, noshow, entered-in-error, checked-in, waitlist]
+        serviceType:
+          type: array
+          items: { type: object }
+        start:
+          type: string
+          format: date-time
+        end:
+          type: string
+          format: date-time
+        participant:
+          type: array
+          items: { type: object }
+        meta:
+          type: object
+
+    Immunization:
+      type: object
+      description: FHIR R4 Immunization resource
+      properties:
+        resourceType:
+          type: string
+          example: Immunization
+        id:
+          type: string
+        status:
+          type: string
+        vaccineCode:
+          type: object
+        patient:
+          type: object
+        occurrenceDateTime:
+          type: string
+        lotNumber:
+          type: string
+        site:
+          type: object
+        route:
+          type: object
+        meta:
+          type: object
+
+    CarePlan:
+      type: object
+      description: FHIR R4 CarePlan resource
+      properties:
+        resourceType:
+          type: string
+          example: CarePlan
+        id:
+          type: string
+        status:
+          type: string
+        intent:
+          type: string
+        title:
+          type: string
+        description:
+          type: string
+        subject:
+          type: object
+        period:
+          type: object
+        activity:
+          type: array
+          items: { type: object }
+        meta:
+          type: object
+
+    Location:
+      type: object
+      description: FHIR R4 Location resource
+      properties:
+        resourceType:
+          type: string
+          example: Location
+        id:
+          type: string
+        status:
+          type: string
+        name:
+          type: string
+        type:
+          type: array
+          items: { type: object }
+        telecom:
+          type: array
+          items: { type: object }
+        address:
+          type: object
+        position:
+          type: object
+          properties:
+            longitude: { type: number }
+            latitude: { type: number }
+        managingOrganization:
+          type: object
+        meta:
+          type: object
+
+  responses:
+    Unauthorized:
+      description: Missing or invalid API key
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              error:
+                type: string
+                example: Invalid API key
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/OperationOutcome'
+
+security:
+  - ApiKeyAuth: []
+
+tags:
+  - name: Health
+  - name: Patient
+  - name: Observation
+  - name: Condition
+  - name: Encounter
+  - name: Medication
+  - name: MedicationRequest
+  - name: Practitioner
+  - name: Organization
+  - name: AllergyIntolerance
+  - name: Procedure
+  - name: DiagnosticReport
+  - name: Appointment
+  - name: Immunization
+  - name: CarePlan
+  - name: Location
+
+paths:
+  /health:
+    get:
+      summary: Health check
+      tags: [Health]
+      security: []
+      responses:
+        '200':
+          description: Service is healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status: { type: string, example: ok }
+                  timestamp: { type: string }
+                  version: { type: string }
+                  service: { type: string }
+                  fhirVersion: { type: string, example: R4 }
+                  dataMode: { type: string }
+                  authMode: { type: string }
+
+  /Patient:
+    get:
+      summary: Search Patients
+      tags: [Patient]
+      parameters:
+        - { in: query, name: page, schema: { type: integer, default: 1 } }
+        - { in: query, name: count, schema: { type: integer, default: 10 }, description: "FHIR _count parameter (alias for limit)" }
+      responses:
+        '200':
+          description: Bundle of Patient resources
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Bundle'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+    post:
+      summary: Create Patient
+      tags: [Patient]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Patient'
+            example:
+              resourceType: Patient
+              active: true
+              name: [{ use: official, family: Doe, given: [Jane] }]
+              gender: female
+              birthDate: "1990-05-20"
+      responses:
+        '201':
+          description: Patient created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Patient'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /Patient/{id}:
+    parameters:
+      - { in: path, name: id, required: true, schema: { type: string }, example: pat-001 }
+    get:
+      summary: Read Patient by ID
+      tags: [Patient]
+      responses:
+        '200':
+          description: Patient resource
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Patient'
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    put:
+      summary: Update Patient
+      tags: [Patient]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Patient'
+      responses:
+        '200':
+          description: Updated Patient
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Patient'
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    delete:
+      summary: Delete Patient
+      tags: [Patient]
+      responses:
+        '204': { description: Patient deleted }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /Observation:
+    get:
+      summary: Search Observations
+      tags: [Observation]
+      parameters:
+        - { in: query, name: page, schema: { type: integer, default: 1 } }
+        - { in: query, name: count, schema: { type: integer, default: 10 } }
+      responses:
+        '200':
+          description: Bundle of Observation resources
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Bundle'
+        '401': { $ref: '#/components/responses/Unauthorized' }
+    post:
+      summary: Create Observation
+      tags: [Observation]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Observation'
+      responses:
+        '201':
+          description: Observation created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Observation'
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  /Observation/{id}:
+    parameters:
+      - { in: path, name: id, required: true, schema: { type: string } }
+    get:
+      summary: Read Observation by ID
+      tags: [Observation]
+      responses:
+        '200':
+          description: Observation resource
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Observation'
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    put:
+      summary: Update Observation
+      tags: [Observation]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Observation'
+      responses:
+        '200':
+          description: Updated Observation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Observation'
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    delete:
+      summary: Delete Observation
+      tags: [Observation]
+      responses:
+        '204': { description: Deleted }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /Condition:
+    get:
+      summary: Search Conditions
+      tags: [Condition]
+      parameters:
+        - { in: query, name: page, schema: { type: integer, default: 1 } }
+        - { in: query, name: count, schema: { type: integer, default: 10 } }
+      responses:
+        '200':
+          description: Bundle of Condition resources
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Bundle'
+        '401': { $ref: '#/components/responses/Unauthorized' }
+    post:
+      summary: Create Condition
+      tags: [Condition]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Condition'
+      responses:
+        '201':
+          description: Condition created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Condition'
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  /Condition/{id}:
+    parameters:
+      - { in: path, name: id, required: true, schema: { type: string } }
+    get:
+      summary: Read Condition by ID
+      tags: [Condition]
+      responses:
+        '200': { description: Condition resource, content: { application/json: { schema: { $ref: '#/components/schemas/Condition' } } } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    put:
+      summary: Update Condition
+      tags: [Condition]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Condition'
+      responses:
+        '200': { description: Updated, content: { application/json: { schema: { $ref: '#/components/schemas/Condition' } } } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    delete:
+      summary: Delete Condition
+      tags: [Condition]
+      responses:
+        '204': { description: Deleted }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /Encounter:
+    get:
+      summary: Search Encounters
+      tags: [Encounter]
+      parameters:
+        - { in: query, name: page, schema: { type: integer, default: 1 } }
+        - { in: query, name: count, schema: { type: integer, default: 10 } }
+      responses:
+        '200': { description: Bundle of Encounters, content: { application/json: { schema: { $ref: '#/components/schemas/Bundle' } } } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+    post:
+      summary: Create Encounter
+      tags: [Encounter]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Encounter'
+      responses:
+        '201': { description: Encounter created, content: { application/json: { schema: { $ref: '#/components/schemas/Encounter' } } } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  /Encounter/{id}:
+    parameters:
+      - { in: path, name: id, required: true, schema: { type: string } }
+    get:
+      summary: Read Encounter
+      tags: [Encounter]
+      responses:
+        '200': { description: Encounter, content: { application/json: { schema: { $ref: '#/components/schemas/Encounter' } } } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    put:
+      summary: Update Encounter
+      tags: [Encounter]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Encounter'
+      responses:
+        '200': { description: Updated, content: { application/json: { schema: { $ref: '#/components/schemas/Encounter' } } } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    delete:
+      summary: Delete Encounter
+      tags: [Encounter]
+      responses:
+        '204': { description: Deleted }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /Medication:
+    get:
+      summary: Search Medications
+      tags: [Medication]
+      parameters:
+        - { in: query, name: page, schema: { type: integer, default: 1 } }
+        - { in: query, name: count, schema: { type: integer, default: 10 } }
+      responses:
+        '200': { description: Bundle of Medications, content: { application/json: { schema: { $ref: '#/components/schemas/Bundle' } } } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+    post:
+      summary: Create Medication
+      tags: [Medication]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Medication'
+      responses:
+        '201': { description: Created, content: { application/json: { schema: { $ref: '#/components/schemas/Medication' } } } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  /Medication/{id}:
+    parameters:
+      - { in: path, name: id, required: true, schema: { type: string } }
+    get:
+      summary: Read Medication
+      tags: [Medication]
+      responses:
+        '200': { description: Medication, content: { application/json: { schema: { $ref: '#/components/schemas/Medication' } } } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    put:
+      summary: Update Medication
+      tags: [Medication]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Medication'
+      responses:
+        '200': { description: Updated, content: { application/json: { schema: { $ref: '#/components/schemas/Medication' } } } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    delete:
+      summary: Delete Medication
+      tags: [Medication]
+      responses:
+        '204': { description: Deleted }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /MedicationRequest:
+    get:
+      summary: Search MedicationRequests
+      tags: [MedicationRequest]
+      parameters:
+        - { in: query, name: page, schema: { type: integer, default: 1 } }
+        - { in: query, name: count, schema: { type: integer, default: 10 } }
+      responses:
+        '200': { description: Bundle, content: { application/json: { schema: { $ref: '#/components/schemas/Bundle' } } } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+    post:
+      summary: Create MedicationRequest
+      tags: [MedicationRequest]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MedicationRequest'
+      responses:
+        '201': { description: Created, content: { application/json: { schema: { $ref: '#/components/schemas/MedicationRequest' } } } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  /MedicationRequest/{id}:
+    parameters:
+      - { in: path, name: id, required: true, schema: { type: string } }
+    get:
+      summary: Read MedicationRequest
+      tags: [MedicationRequest]
+      responses:
+        '200': { description: MedicationRequest, content: { application/json: { schema: { $ref: '#/components/schemas/MedicationRequest' } } } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    put:
+      summary: Update MedicationRequest
+      tags: [MedicationRequest]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MedicationRequest'
+      responses:
+        '200': { description: Updated, content: { application/json: { schema: { $ref: '#/components/schemas/MedicationRequest' } } } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    delete:
+      summary: Delete MedicationRequest
+      tags: [MedicationRequest]
+      responses:
+        '204': { description: Deleted }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /Practitioner:
+    get:
+      summary: Search Practitioners
+      tags: [Practitioner]
+      parameters:
+        - { in: query, name: page, schema: { type: integer, default: 1 } }
+        - { in: query, name: count, schema: { type: integer, default: 10 } }
+      responses:
+        '200': { description: Bundle, content: { application/json: { schema: { $ref: '#/components/schemas/Bundle' } } } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+    post:
+      summary: Create Practitioner
+      tags: [Practitioner]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Practitioner'
+      responses:
+        '201': { description: Created, content: { application/json: { schema: { $ref: '#/components/schemas/Practitioner' } } } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  /Practitioner/{id}:
+    parameters:
+      - { in: path, name: id, required: true, schema: { type: string } }
+    get:
+      summary: Read Practitioner
+      tags: [Practitioner]
+      responses:
+        '200': { description: Practitioner, content: { application/json: { schema: { $ref: '#/components/schemas/Practitioner' } } } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    put:
+      summary: Update Practitioner
+      tags: [Practitioner]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Practitioner'
+      responses:
+        '200': { description: Updated, content: { application/json: { schema: { $ref: '#/components/schemas/Practitioner' } } } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    delete:
+      summary: Delete Practitioner
+      tags: [Practitioner]
+      responses:
+        '204': { description: Deleted }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /Organization:
+    get:
+      summary: Search Organizations
+      tags: [Organization]
+      parameters:
+        - { in: query, name: page, schema: { type: integer, default: 1 } }
+        - { in: query, name: count, schema: { type: integer, default: 10 } }
+      responses:
+        '200': { description: Bundle, content: { application/json: { schema: { $ref: '#/components/schemas/Bundle' } } } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+    post:
+      summary: Create Organization
+      tags: [Organization]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Organization'
+      responses:
+        '201': { description: Created, content: { application/json: { schema: { $ref: '#/components/schemas/Organization' } } } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  /Organization/{id}:
+    parameters:
+      - { in: path, name: id, required: true, schema: { type: string } }
+    get:
+      summary: Read Organization
+      tags: [Organization]
+      responses:
+        '200': { description: Organization, content: { application/json: { schema: { $ref: '#/components/schemas/Organization' } } } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    put:
+      summary: Update Organization
+      tags: [Organization]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Organization'
+      responses:
+        '200': { description: Updated, content: { application/json: { schema: { $ref: '#/components/schemas/Organization' } } } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    delete:
+      summary: Delete Organization
+      tags: [Organization]
+      responses:
+        '204': { description: Deleted }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /AllergyIntolerance:
+    get:
+      summary: Search AllergyIntolerances
+      tags: [AllergyIntolerance]
+      parameters:
+        - { in: query, name: page, schema: { type: integer, default: 1 } }
+        - { in: query, name: count, schema: { type: integer, default: 10 } }
+      responses:
+        '200': { description: Bundle, content: { application/json: { schema: { $ref: '#/components/schemas/Bundle' } } } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+    post:
+      summary: Create AllergyIntolerance
+      tags: [AllergyIntolerance]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AllergyIntolerance'
+      responses:
+        '201': { description: Created, content: { application/json: { schema: { $ref: '#/components/schemas/AllergyIntolerance' } } } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  /AllergyIntolerance/{id}:
+    parameters:
+      - { in: path, name: id, required: true, schema: { type: string } }
+    get:
+      summary: Read AllergyIntolerance
+      tags: [AllergyIntolerance]
+      responses:
+        '200': { description: AllergyIntolerance, content: { application/json: { schema: { $ref: '#/components/schemas/AllergyIntolerance' } } } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    put:
+      summary: Update AllergyIntolerance
+      tags: [AllergyIntolerance]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AllergyIntolerance'
+      responses:
+        '200': { description: Updated, content: { application/json: { schema: { $ref: '#/components/schemas/AllergyIntolerance' } } } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    delete:
+      summary: Delete AllergyIntolerance
+      tags: [AllergyIntolerance]
+      responses:
+        '204': { description: Deleted }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /Procedure:
+    get:
+      summary: Search Procedures
+      tags: [Procedure]
+      parameters:
+        - { in: query, name: page, schema: { type: integer, default: 1 } }
+        - { in: query, name: count, schema: { type: integer, default: 10 } }
+      responses:
+        '200': { description: Bundle, content: { application/json: { schema: { $ref: '#/components/schemas/Bundle' } } } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+    post:
+      summary: Create Procedure
+      tags: [Procedure]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Procedure'
+      responses:
+        '201': { description: Created, content: { application/json: { schema: { $ref: '#/components/schemas/Procedure' } } } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  /Procedure/{id}:
+    parameters:
+      - { in: path, name: id, required: true, schema: { type: string } }
+    get:
+      summary: Read Procedure
+      tags: [Procedure]
+      responses:
+        '200': { description: Procedure, content: { application/json: { schema: { $ref: '#/components/schemas/Procedure' } } } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    put:
+      summary: Update Procedure
+      tags: [Procedure]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Procedure'
+      responses:
+        '200': { description: Updated, content: { application/json: { schema: { $ref: '#/components/schemas/Procedure' } } } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    delete:
+      summary: Delete Procedure
+      tags: [Procedure]
+      responses:
+        '204': { description: Deleted }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /DiagnosticReport:
+    get:
+      summary: Search DiagnosticReports
+      tags: [DiagnosticReport]
+      parameters:
+        - { in: query, name: page, schema: { type: integer, default: 1 } }
+        - { in: query, name: count, schema: { type: integer, default: 10 } }
+      responses:
+        '200': { description: Bundle, content: { application/json: { schema: { $ref: '#/components/schemas/Bundle' } } } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+    post:
+      summary: Create DiagnosticReport
+      tags: [DiagnosticReport]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DiagnosticReport'
+      responses:
+        '201': { description: Created, content: { application/json: { schema: { $ref: '#/components/schemas/DiagnosticReport' } } } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  /DiagnosticReport/{id}:
+    parameters:
+      - { in: path, name: id, required: true, schema: { type: string } }
+    get:
+      summary: Read DiagnosticReport
+      tags: [DiagnosticReport]
+      responses:
+        '200': { description: DiagnosticReport, content: { application/json: { schema: { $ref: '#/components/schemas/DiagnosticReport' } } } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    put:
+      summary: Update DiagnosticReport
+      tags: [DiagnosticReport]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DiagnosticReport'
+      responses:
+        '200': { description: Updated, content: { application/json: { schema: { $ref: '#/components/schemas/DiagnosticReport' } } } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    delete:
+      summary: Delete DiagnosticReport
+      tags: [DiagnosticReport]
+      responses:
+        '204': { description: Deleted }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /Appointment:
+    get:
+      summary: Search Appointments
+      tags: [Appointment]
+      parameters:
+        - { in: query, name: page, schema: { type: integer, default: 1 } }
+        - { in: query, name: count, schema: { type: integer, default: 10 } }
+      responses:
+        '200': { description: Bundle, content: { application/json: { schema: { $ref: '#/components/schemas/Bundle' } } } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+    post:
+      summary: Create Appointment
+      tags: [Appointment]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Appointment'
+      responses:
+        '201': { description: Created, content: { application/json: { schema: { $ref: '#/components/schemas/Appointment' } } } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  /Appointment/{id}:
+    parameters:
+      - { in: path, name: id, required: true, schema: { type: string } }
+    get:
+      summary: Read Appointment
+      tags: [Appointment]
+      responses:
+        '200': { description: Appointment, content: { application/json: { schema: { $ref: '#/components/schemas/Appointment' } } } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    put:
+      summary: Update Appointment
+      tags: [Appointment]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Appointment'
+      responses:
+        '200': { description: Updated, content: { application/json: { schema: { $ref: '#/components/schemas/Appointment' } } } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    delete:
+      summary: Delete Appointment
+      tags: [Appointment]
+      responses:
+        '204': { description: Deleted }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /Immunization:
+    get:
+      summary: Search Immunizations
+      tags: [Immunization]
+      parameters:
+        - { in: query, name: page, schema: { type: integer, default: 1 } }
+        - { in: query, name: count, schema: { type: integer, default: 10 } }
+      responses:
+        '200': { description: Bundle, content: { application/json: { schema: { $ref: '#/components/schemas/Bundle' } } } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+    post:
+      summary: Create Immunization
+      tags: [Immunization]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Immunization'
+      responses:
+        '201': { description: Created, content: { application/json: { schema: { $ref: '#/components/schemas/Immunization' } } } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  /Immunization/{id}:
+    parameters:
+      - { in: path, name: id, required: true, schema: { type: string } }
+    get:
+      summary: Read Immunization
+      tags: [Immunization]
+      responses:
+        '200': { description: Immunization, content: { application/json: { schema: { $ref: '#/components/schemas/Immunization' } } } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    put:
+      summary: Update Immunization
+      tags: [Immunization]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Immunization'
+      responses:
+        '200': { description: Updated, content: { application/json: { schema: { $ref: '#/components/schemas/Immunization' } } } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    delete:
+      summary: Delete Immunization
+      tags: [Immunization]
+      responses:
+        '204': { description: Deleted }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /CarePlan:
+    get:
+      summary: Search CarePlans
+      tags: [CarePlan]
+      parameters:
+        - { in: query, name: page, schema: { type: integer, default: 1 } }
+        - { in: query, name: count, schema: { type: integer, default: 10 } }
+      responses:
+        '200': { description: Bundle, content: { application/json: { schema: { $ref: '#/components/schemas/Bundle' } } } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+    post:
+      summary: Create CarePlan
+      tags: [CarePlan]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CarePlan'
+      responses:
+        '201': { description: Created, content: { application/json: { schema: { $ref: '#/components/schemas/CarePlan' } } } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  /CarePlan/{id}:
+    parameters:
+      - { in: path, name: id, required: true, schema: { type: string } }
+    get:
+      summary: Read CarePlan
+      tags: [CarePlan]
+      responses:
+        '200': { description: CarePlan, content: { application/json: { schema: { $ref: '#/components/schemas/CarePlan' } } } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    put:
+      summary: Update CarePlan
+      tags: [CarePlan]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CarePlan'
+      responses:
+        '200': { description: Updated, content: { application/json: { schema: { $ref: '#/components/schemas/CarePlan' } } } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    delete:
+      summary: Delete CarePlan
+      tags: [CarePlan]
+      responses:
+        '204': { description: Deleted }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /Location:
+    get:
+      summary: Search Locations
+      tags: [Location]
+      parameters:
+        - { in: query, name: page, schema: { type: integer, default: 1 } }
+        - { in: query, name: count, schema: { type: integer, default: 10 } }
+      responses:
+        '200': { description: Bundle, content: { application/json: { schema: { $ref: '#/components/schemas/Bundle' } } } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+    post:
+      summary: Create Location
+      tags: [Location]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Location'
+      responses:
+        '201': { description: Created, content: { application/json: { schema: { $ref: '#/components/schemas/Location' } } } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  /Location/{id}:
+    parameters:
+      - { in: path, name: id, required: true, schema: { type: string } }
+    get:
+      summary: Read Location
+      tags: [Location]
+      responses:
+        '200': { description: Location, content: { application/json: { schema: { $ref: '#/components/schemas/Location' } } } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    put:
+      summary: Update Location
+      tags: [Location]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Location'
+      responses:
+        '200': { description: Updated, content: { application/json: { schema: { $ref: '#/components/schemas/Location' } } } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    delete:
+      summary: Delete Location
+      tags: [Location]
+      responses:
+        '204': { description: Deleted }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }

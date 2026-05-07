@@ -1,0 +1,2 @@
+# Simple client requirements - just needs requests
+requests>=2.31.0

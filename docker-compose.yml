@@ -1,0 +1,383 @@
+# =============================================================================
+# DemoBench Codespace — Docker Compose
+# =============================================================================
+#
+# PROFILES
+#   core           → postgres + dashboard + portainer  (always recommended)
+#   apis           → multi-api-mock + fhir-api + fhir-web
+#   sse            → metric-sse + railway-sse
+#   ai             → litellm + open-webui
+#   security       → presidio + keycloak
+#   observability  → jaeger + new-relic-otel
+#   sftp           → sftp
+#   all            → everything
+#
+# USAGE
+#   Start all:              docker compose --profile all up -d
+#   Start subset:           docker compose --profile core --profile apis up -d
+#   Start one service:      docker compose up -d multi-api-mock
+#   Stop one service:       docker compose stop multi-api-mock
+#   Stop a profile:         docker compose --profile apis down
+#   Stop everything:        docker compose --profile all down
+#   View logs:              docker compose logs -f <service>
+#
+# =============================================================================
+
+x-common-env: &common-env
+  env_file: .env
+
+x-restart: &restart
+  restart: unless-stopped
+
+# ---------------------------------------------------------------------------
+# Networks
+# ---------------------------------------------------------------------------
+networks:
+  demobench:
+    driver: bridge
+
+# ---------------------------------------------------------------------------
+# Volumes (named for services that cannot use bind mounts easily)
+# ---------------------------------------------------------------------------
+volumes:
+  portainer_data:
+
+# =============================================================================
+# SERVICES
+# =============================================================================
+services:
+
+  # ---------------------------------------------------------------------------
+  # CORE: PostgreSQL
+  # ---------------------------------------------------------------------------
+  postgres:
+    image: postgres:16-alpine
+    profiles: [core, apis, security, all]
+    <<: *restart
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-demobench}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-demobench_pass}
+      POSTGRES_DB: ${POSTGRES_DB:-demobench}
+    volumes:
+      - ./data/postgres:/var/lib/postgresql/data
+      - ./scripts/postgres-init.sql:/docker-entrypoint-initdb.d/01-init.sql:ro
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    networks: [demobench]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-demobench}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # ---------------------------------------------------------------------------
+  # CORE: DemoBench Dashboard (orchestrator UI)
+  # ---------------------------------------------------------------------------
+  dashboard:
+    build:
+      context: ./dashboard
+      dockerfile: Dockerfile
+    profiles: [core, all]
+    <<: *restart
+    environment:
+      PORT: ${DASHBOARD_PORT:-4500}
+      NODE_ENV: production
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./services:/app/services:ro
+      - ./.env:/app/.env:ro
+    ports:
+      - "${DASHBOARD_PORT:-4500}:4500"
+    networks: [demobench]
+
+  # ---------------------------------------------------------------------------
+  # CORE: Portainer (Docker management UI)
+  # ---------------------------------------------------------------------------
+  portainer:
+    image: portainer/portainer-ce:latest
+    profiles: [core, all]
+    <<: *restart
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - portainer_data:/data
+    ports:
+      - "${PORTAINER_PORT:-9000}:9000"
+    networks: [demobench]
+
+  # ---------------------------------------------------------------------------
+  # APIS: Multi-API Mock Server
+  # ---------------------------------------------------------------------------
+  multi-api-mock:
+    build:
+      context: ./services/multi-api-mock
+      dockerfile: Dockerfile
+    profiles: [apis, all]
+    <<: *restart
+    environment:
+      PORT: ${MOCK_API_PORT:-3000}
+      AUTH_MODE: ${MOCK_API_AUTH_MODE:-apikey}
+      API_KEY: ${MOCK_API_KEY:-mock-api-key-changeme}
+      TOKEN_SECRET: ${MOCK_API_TOKEN_SECRET:-mock-bearer-token-changeme}
+      OAUTH_JWT_SECRET: ${MOCK_API_OAUTH_JWT_SECRET:-mock-oauth-jwt-secret-changeme}
+      PAGINATION_MODE: ${MOCK_API_PAGINATION_MODE:-offset}
+      ERROR_RATE_500: ${MOCK_API_ERROR_RATE_500:-0.0}
+      ERROR_RATE_429: ${MOCK_API_ERROR_RATE_429:-0.0}
+      ERROR_RATE_TIMEOUT: ${MOCK_API_ERROR_RATE_TIMEOUT:-0.0}
+      DATABASE_URL: ${MOCK_API_DATABASE_URL:-postgresql://demobench:demobench_pass@postgres:5432/demobench}
+    ports:
+      - "${MOCK_API_PORT:-3000}:3000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks: [demobench]
+
+  # ---------------------------------------------------------------------------
+  # APIS: FHIR R4 API
+  # ---------------------------------------------------------------------------
+  fhir-api:
+    build:
+      context: ./services/fhir-api
+      dockerfile: Dockerfile
+    profiles: [apis, all]
+    <<: *restart
+    environment:
+      PORT: ${FHIR_API_PORT:-3001}
+      AUTH_MODE: ${FHIR_API_AUTH_MODE:-apikey}
+      API_KEY: ${FHIR_API_KEY:-fhir-api-key-changeme}
+      DATA_MODE: ${FHIR_DATA_MODE:-postgres}
+      DATABASE_URL: ${FHIR_DATABASE_URL:-postgresql://demobench:demobench_pass@postgres:5432/demobench}
+    ports:
+      - "${FHIR_API_PORT:-3001}:3001"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks: [demobench]
+
+  # ---------------------------------------------------------------------------
+  # APIS: FHIR R4 Web App
+  # NOTE: This service depends on fhir-api being reachable at FHIR_WEB_API_BASE_URL.
+  #       In Codespaces, set FHIR_WEB_API_BASE_URL to the forwarded port 3001 URL.
+  #       Example: https://your-codespace-3001.preview.app.github.dev
+  # ---------------------------------------------------------------------------
+  fhir-web:
+    build:
+      context: ./services/fhir-web
+      dockerfile: Dockerfile
+    profiles: [apis, all]
+    <<: *restart
+    environment:
+      PORT: ${FHIR_WEB_PORT:-3002}
+      FHIR_API_BASE_URL: ${FHIR_WEB_API_BASE_URL:-http://localhost:3001}
+    ports:
+      - "${FHIR_WEB_PORT:-3002}:3002"
+    networks: [demobench]
+
+  # ---------------------------------------------------------------------------
+  # SSE: Metric SSE Server
+  # ---------------------------------------------------------------------------
+  metric-sse:
+    build:
+      context: ./services/metric-sse
+      dockerfile: Dockerfile
+    profiles: [sse, all]
+    <<: *restart
+    environment:
+      PORT: ${METRIC_SSE_PORT:-3003}
+      METRICS_INTERVAL_MS: ${METRIC_SSE_INTERVAL_MS:-2000}
+      NOTIFICATION_PROBABILITY: ${METRIC_SSE_NOTIFICATION_PROBABILITY:-0.25}
+      HEARTBEAT_INTERVAL_MS: ${METRIC_SSE_HEARTBEAT_INTERVAL_MS:-15000}
+    ports:
+      - "${METRIC_SSE_PORT:-3003}:3003"
+    networks: [demobench]
+
+  # ---------------------------------------------------------------------------
+  # SSE: US Railway Mock SSE Server
+  # ---------------------------------------------------------------------------
+  railway-sse:
+    build:
+      context: ./services/railway-sse
+      dockerfile: Dockerfile
+    profiles: [sse, all]
+    <<: *restart
+    environment:
+      PORT: ${RAILWAY_SSE_PORT:-3004}
+      TICK_MS: ${RAILWAY_SSE_TICK_MS:-5000}
+      TRAIN_COUNT: ${RAILWAY_SSE_TRAIN_COUNT:-10}
+      TIME_SCALE: ${RAILWAY_SSE_TIME_SCALE:-60}
+    ports:
+      - "${RAILWAY_SSE_PORT:-3004}:3004"
+    networks: [demobench]
+
+  # ---------------------------------------------------------------------------
+  # AI: LiteLLM Proxy
+  # ---------------------------------------------------------------------------
+  litellm:
+    image: ghcr.io/berriai/litellm:main-latest
+    profiles: [ai, all]
+    <<: *restart
+    environment:
+      LITELLM_MASTER_KEY: ${LITELLM_MASTER_KEY:-sk-changeme-masterkey}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      AZURE_API_KEY: ${AZURE_API_KEY:-}
+      AZURE_API_BASE: ${AZURE_API_BASE:-}
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      STORE_MODEL_IN_DB: "false"
+    volumes:
+      - ./services/litellm/config/litellm_config.yaml:/app/config.yaml:ro
+      - ./services/litellm/data:/app/data
+    command: ["--config", "/app/config.yaml", "--port", "4000", "--detailed_debug"]
+    ports:
+      - "${LITELLM_PORT:-4000}:4000"
+    networks: [demobench]
+
+  # ---------------------------------------------------------------------------
+  # AI: Open WebUI
+  # ---------------------------------------------------------------------------
+  open-webui:
+    image: ghcr.io/open-webui/open-webui:main
+    profiles: [ai, all]
+    <<: *restart
+    environment:
+      OPENAI_API_BASE_URL: ${OPEN_WEBUI_OPENAI_API_BASE_URL:-http://litellm:4000/v1}
+      OPENAI_API_KEY: ${OPEN_WEBUI_OPENAI_API_KEY:-sk-changeme-masterkey}
+      WEBUI_AUTH: "false"
+    volumes:
+      - ./services/open-webui/data:/app/backend/data
+    ports:
+      - "${OPEN_WEBUI_PORT:-8081}:8080"
+    networks: [demobench]
+
+  # ---------------------------------------------------------------------------
+  # SECURITY: Presidio Analyzer
+  # NOTE: Image is ~2 GB. First pull takes 3–6 minutes.
+  # ---------------------------------------------------------------------------
+  presidio-analyzer:
+    image: mcr.microsoft.com/presidio-analyzer:latest
+    profiles: [security, all]
+    <<: *restart
+    ports:
+      - "${PRESIDIO_ANALYZER_PORT:-5002}:3000"
+    networks: [demobench]
+
+  # ---------------------------------------------------------------------------
+  # SECURITY: Presidio Anonymizer
+  # ---------------------------------------------------------------------------
+  presidio-anonymizer:
+    image: mcr.microsoft.com/presidio-anonymizer:latest
+    profiles: [security, all]
+    <<: *restart
+    ports:
+      - "${PRESIDIO_ANONYMIZER_PORT:-5001}:3000"
+    networks: [demobench]
+
+  # ---------------------------------------------------------------------------
+  # SECURITY: Presidio Image Redactor
+  # NOTE: Image is ~2 GB. First pull takes 3–6 minutes.
+  # ---------------------------------------------------------------------------
+  presidio-image-redactor:
+    image: mcr.microsoft.com/presidio-image-redactor:latest
+    profiles: [security, all]
+    <<: *restart
+    ports:
+      - "${PRESIDIO_IMAGE_REDACTOR_PORT:-5003}:3000"
+    networks: [demobench]
+
+  # ---------------------------------------------------------------------------
+  # SECURITY: Keycloak
+  # Uses a dedicated Postgres database (keycloak), NOT the demobench schema.
+  # Keycloak requires its own database; it cannot share with other services.
+  # ---------------------------------------------------------------------------
+  keycloak-db:
+    image: postgres:16-alpine
+    profiles: [security, all]
+    <<: *restart
+    environment:
+      POSTGRES_USER: ${KEYCLOAK_DB_USER:-keycloak}
+      POSTGRES_PASSWORD: ${KEYCLOAK_DB_PASSWORD:-keycloak_pass}
+      POSTGRES_DB: ${KEYCLOAK_DB:-keycloak}
+    volumes:
+      - ./data/keycloak-postgres:/var/lib/postgresql/data
+    networks: [demobench]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${KEYCLOAK_DB_USER:-keycloak}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  keycloak:
+    image: quay.io/keycloak/keycloak:23.0
+    profiles: [security, all]
+    <<: *restart
+    command: start-dev --import-realm
+    environment:
+      KC_DB: postgres
+      KC_DB_URL: jdbc:postgresql://keycloak-db:5432/${KEYCLOAK_DB:-keycloak}
+      KC_DB_USERNAME: ${KEYCLOAK_DB_USER:-keycloak}
+      KC_DB_PASSWORD: ${KEYCLOAK_DB_PASSWORD:-keycloak_pass}
+      KC_HOSTNAME_STRICT: "false"
+      KC_HOSTNAME_STRICT_HTTPS: "false"
+      KC_HTTP_ENABLED: "true"
+      KC_HEALTH_ENABLED: "true"
+      KC_METRICS_ENABLED: "true"
+      KEYCLOAK_ADMIN: ${KEYCLOAK_ADMIN:-admin}
+      KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:-admin}
+    volumes:
+      - ./services/keycloak/imports:/opt/keycloak/data/import:ro
+    ports:
+      - "${KEYCLOAK_PORT:-8080}:8080"
+    depends_on:
+      keycloak-db:
+        condition: service_healthy
+    networks: [demobench]
+
+  # ---------------------------------------------------------------------------
+  # OBSERVABILITY: Jaeger
+  # ---------------------------------------------------------------------------
+  jaeger:
+    image: jaegertracing/all-in-one:latest
+    profiles: [observability, all]
+    <<: *restart
+    environment:
+      COLLECTOR_OTLP_ENABLED: "true"
+    ports:
+      - "${JAEGER_UI_PORT:-16686}:16686"
+      - "${JAEGER_GRPC_PORT:-14250}:14250"
+      - "${JAEGER_HTTP_PORT:-14268}:14268"
+      - "6831:6831/udp"
+    networks: [demobench]
+
+  # ---------------------------------------------------------------------------
+  # OBSERVABILITY: New Relic OpenTelemetry Collector
+  # Requires NEW_RELIC_LICENSE_KEY to be set in .env
+  # ---------------------------------------------------------------------------
+  new-relic-otel:
+    image: otel/opentelemetry-collector-contrib:latest
+    profiles: [observability, all]
+    <<: *restart
+    environment:
+      NEW_RELIC_LICENSE_KEY: ${NEW_RELIC_LICENSE_KEY:-}
+    volumes:
+      - ./services/new-relic-otel/otel-collector-config.yaml:/etc/otelcol-contrib/config.yaml:ro
+    ports:
+      - "${NEW_RELIC_OTEL_GRPC_PORT:-4317}:4317"
+      - "${NEW_RELIC_OTEL_HTTP_PORT:-4318}:4318"
+      - "8888:8888"
+      - "13133:13133"
+    networks: [demobench]
+
+  # ---------------------------------------------------------------------------
+  # SFTP: SFTP Server
+  # NOTE: Codespaces only forward HTTP ports. To expose SFTP externally, you
+  # must run an ngrok TCP tunnel manually. See README for full instructions.
+  # ---------------------------------------------------------------------------
+  sftp:
+    image: atmoz/sftp:latest
+    profiles: [sftp, all]
+    <<: *restart
+    volumes:
+      - ./services/sftp/upload:/home/${SFTP_USER:-foo}/upload
+      - ./services/sftp/users.conf:/etc/sftp/users.conf:ro
+    ports:
+      - "${SFTP_PORT:-3022}:22"
+    networks: [demobench]

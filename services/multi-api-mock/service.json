@@ -1,0 +1,16 @@
+{
+  "id": "multi-api-mock",
+  "name": "Multi-API Mock Server",
+  "description": "Multiple REST APIs with CRUD, pagination, auth modes (API key / Bearer / OAuth2), and error simulation. Includes Contacts, Products, and Orders APIs.",
+  "profile": "apis",
+  "composeService": "multi-api-mock",
+  "port": 3000,
+  "healthPath": "/health",
+  "uiPath": "/admin",
+  "category": "APIs",
+  "dependsOn": [],
+  "requiredSecrets": [],
+  "tags": ["rest", "mock", "crud", "auth", "pagination"],
+  "docsUrl": "https://github.com/lbrenman/multi-api-mock-server",
+  "notes": null
+}

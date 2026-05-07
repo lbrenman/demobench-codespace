@@ -1,0 +1,64 @@
+{
+  "name": "DemoBench Codespace",
+  "image": "mcr.microsoft.com/devcontainers/base:ubuntu-22.04",
+
+  "features": {
+    "ghcr.io/devcontainers/features/docker-in-docker:2": {
+      "version": "latest",
+      "dockerDashComposeVersion": "v2"
+    },
+    "ghcr.io/devcontainers/features/node:1": {
+      "version": "20"
+    }
+  },
+
+  "forwardPorts": [
+    3000, 3001, 3002, 3003, 3004,
+    4000, 4317, 4318, 4500,
+    5001, 5002, 5003,
+    5432,
+    8080, 8081,
+    9000,
+    16686, 14250, 14268
+  ],
+
+  "portsAttributes": {
+    "3000": { "label": "Multi-API Mock",        "onAutoForward": "silent" },
+    "3001": { "label": "FHIR API",              "onAutoForward": "silent" },
+    "3002": { "label": "FHIR Web",              "onAutoForward": "silent" },
+    "3003": { "label": "Metric SSE",            "onAutoForward": "silent" },
+    "3004": { "label": "Railway SSE",           "onAutoForward": "silent" },
+    "4000": { "label": "LiteLLM Proxy",         "onAutoForward": "silent" },
+    "4317": { "label": "OTel Collector gRPC",   "onAutoForward": "silent" },
+    "4318": { "label": "OTel Collector HTTP",   "onAutoForward": "silent" },
+    "4500": { "label": "DemoBench Dashboard",   "onAutoForward": "openPreview" },
+    "5001": { "label": "Presidio Anonymizer",   "onAutoForward": "silent" },
+    "5002": { "label": "Presidio Analyzer",     "onAutoForward": "silent" },
+    "5003": { "label": "Presidio Image Redact", "onAutoForward": "silent" },
+    "5432": { "label": "PostgreSQL",            "onAutoForward": "silent" },
+    "8080": { "label": "Keycloak",              "onAutoForward": "silent" },
+    "8081": { "label": "Open WebUI",            "onAutoForward": "silent" },
+    "9000": { "label": "Portainer",             "onAutoForward": "silent" },
+    "16686": { "label": "Jaeger UI",            "onAutoForward": "silent" },
+    "14250": { "label": "Jaeger gRPC",          "onAutoForward": "silent" },
+    "14268": { "label": "Jaeger HTTP",          "onAutoForward": "silent" }
+  },
+
+  "postCreateCommand": "bash .devcontainer/post-create.sh",
+  "postStartCommand": "bash .devcontainer/post-start.sh",
+
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ms-azuretools.vscode-docker",
+        "humao.rest-client",
+        "redhat.vscode-yaml",
+        "dbaeumer.vscode-eslint",
+        "esbenp.prettier-vscode"
+      ],
+      "settings": {
+        "terminal.integrated.defaultProfile.linux": "bash"
+      }
+    }
+  }
+}

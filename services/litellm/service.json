@@ -1,0 +1,16 @@
+{
+  "id": "litellm",
+  "name": "LiteLLM Proxy",
+  "description": "OpenAI-compatible API gateway in front of multiple LLM providers (OpenAI, Anthropic, Azure, Gemini). Configure models in services/litellm/config/litellm_config.yaml.",
+  "profile": "ai",
+  "composeService": "litellm",
+  "port": 4000,
+  "healthPath": "/health",
+  "uiPath": "/docs",
+  "category": "AI",
+  "dependsOn": [],
+  "requiredSecrets": ["OPENAI_API_KEY", "ANTHROPIC_API_KEY"],
+  "tags": ["llm", "ai", "proxy", "openai"],
+  "docsUrl": "https://github.com/lbrenman/litellm-codespace",
+  "notes": "At least one LLM API key is required. Add OPENAI_API_KEY and/or ANTHROPIC_API_KEY in .env."
+}

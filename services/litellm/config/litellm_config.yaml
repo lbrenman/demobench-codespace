@@ -1,0 +1,69 @@
+# LiteLLM Proxy Configuration
+# Docs: https://docs.litellm.ai/docs/proxy/configs
+
+model_list:
+  # ── OpenAI ──────────────────────────────────────────────────────────
+  - model_name: gpt-4o
+    litellm_params:
+      model: openai/gpt-4o
+      api_key: os.environ/OPENAI_API_KEY
+
+  - model_name: gpt-4o-mini
+    litellm_params:
+      model: openai/gpt-4o-mini
+      api_key: os.environ/OPENAI_API_KEY
+
+  # ── Anthropic ────────────────────────────────────────────────────────
+  - model_name: claude-sonnet
+    litellm_params:
+      model: anthropic/claude-sonnet-4-6
+      api_key: os.environ/ANTHROPIC_API_KEY
+
+  - model_name: claude-haiku
+    litellm_params:
+      model: anthropic/claude-haiku-4-5-20251001
+      api_key: os.environ/ANTHROPIC_API_KEY
+
+  # ── Azure OpenAI (uncomment and fill in your deployment names) ───────
+  # - model_name: azure-gpt-4o
+  #   litellm_params:
+  #     model: azure/gpt-4o
+  #     api_key: os.environ/AZURE_API_KEY
+  #     api_base: os.environ/AZURE_API_BASE
+  #     api_version: os.environ/AZURE_API_VERSION
+
+  # ── Google Gemini ────────────────────────────────────────────────────
+  # - model_name: gemini-pro
+  #   litellm_params:
+  #     model: gemini/gemini-1.5-pro
+  #     api_key: os.environ/GEMINI_API_KEY
+
+  # ── Ollama (local models, useful if running in same network) ─────────
+  # - model_name: ollama-llama3
+  #   litellm_params:
+  #     model: ollama/llama3
+  #     api_base: http://localhost:11434
+
+# ── Router Settings ────────────────────────────────────────────────────
+router_settings:
+  routing_strategy: simple-shuffle   # options: simple-shuffle, least-busy, latency-based
+  num_retries: 3
+  timeout: 30
+  retry_after: 5
+
+# ── General Settings ───────────────────────────────────────────────────
+general_settings:
+  master_key: os.environ/LITELLM_MASTER_KEY
+  # No database needed for basic proxy usage.
+  # To enable spend tracking / virtual keys, install prisma and uncomment:
+  # database_url: "sqlite:////workspace/data/litellm/litellm.db"
+  # store_model_in_db: true
+
+  # Uncomment to enable request/response logging
+  # callbacks: ["langfuse"]
+
+litellm_settings:
+  # drop_params: true          # silently drop unsupported params per model
+  # set_verbose: false
+  request_timeout: 60
+  num_retries: 2

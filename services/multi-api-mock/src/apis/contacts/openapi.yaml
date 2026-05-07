@@ -1,0 +1,219 @@
+tags:
+  - name: Contacts
+    description: Manage CRM contacts — people with names, emails, companies, and addresses
+
+components:
+  schemas:
+    Contact:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        first_name:
+          type: string
+          example: Alice
+        last_name:
+          type: string
+          example: Chen
+        email:
+          type: string
+          format: email
+          example: alice.chen@techcorp.com
+        phone:
+          type: string
+          example: "+1-415-555-0101"
+        company:
+          type: string
+          example: TechCorp Inc.
+        title:
+          type: string
+          example: VP of Engineering
+        address:
+          type: string
+          example: 100 Market Street
+        city:
+          type: string
+          example: San Francisco
+        state:
+          type: string
+          example: CA
+        zip:
+          type: string
+          example: "94105"
+        country:
+          type: string
+          example: US
+        notes:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    ContactInput:
+      type: object
+      required:
+        - first_name
+        - last_name
+        - email
+      properties:
+        first_name:
+          type: string
+          example: Alice
+        last_name:
+          type: string
+          example: Chen
+        email:
+          type: string
+          format: email
+          example: alice.chen@techcorp.com
+        phone:
+          type: string
+          example: "+1-415-555-0101"
+        company:
+          type: string
+          example: TechCorp Inc.
+        title:
+          type: string
+          example: VP of Engineering
+        address:
+          type: string
+        city:
+          type: string
+        state:
+          type: string
+        zip:
+          type: string
+        country:
+          type: string
+          default: US
+        notes:
+          type: string
+
+paths:
+  /contacts:
+    get:
+      summary: List contacts (paginated)
+      tags: [Contacts]
+      parameters:
+        - in: query
+          name: page
+          schema:
+            type: integer
+            default: 1
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 10
+      responses:
+        "200":
+          description: Paginated list of contacts
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Contact"
+                  pagination:
+                    type: object
+        "401":
+          description: Unauthorized
+
+    post:
+      summary: Create a contact
+      tags: [Contacts]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ContactInput"
+      responses:
+        "201":
+          description: Contact created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: "#/components/schemas/Contact"
+        "400":
+          description: Validation error
+        "409":
+          description: Duplicate email
+
+  /contacts/{id}:
+    get:
+      summary: Get contact by ID
+      tags: [Contacts]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Contact found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: "#/components/schemas/Contact"
+        "404":
+          description: Contact not found
+
+    put:
+      summary: Update a contact
+      tags: [Contacts]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ContactInput"
+      responses:
+        "200":
+          description: Contact updated
+        "404":
+          description: Contact not found
+
+    delete:
+      summary: Delete a contact
+      tags: [Contacts]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Contact deleted
+        "404":
+          description: Contact not found
+
+  /contacts/health:
+    get:
+      summary: Contacts API health check
+      tags: [Contacts]
+      security: []
+      responses:
+        "200":
+          description: API is healthy

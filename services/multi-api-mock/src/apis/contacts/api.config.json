@@ -1,0 +1,7 @@
+{
+  "name": "Contacts API",
+  "basePath": "contacts",
+  "resource": "contacts",
+  "description": "Manage contacts/CRM records — people with names, emails, companies, and addresses",
+  "version": "1.0.0"
+}

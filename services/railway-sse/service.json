@@ -1,0 +1,16 @@
+{
+  "id": "railway-sse",
+  "name": "US Railway Mock SSE Server",
+  "description": "SSE stream simulating US railway cargo operations — trains moving between freight hubs, cars, and airway bills. Includes a live map dashboard.",
+  "profile": "sse",
+  "composeService": "railway-sse",
+  "port": 3004,
+  "healthPath": "/api/info",
+  "uiPath": "/",
+  "category": "Streaming",
+  "dependsOn": [],
+  "requiredSecrets": [],
+  "tags": ["sse", "streaming", "logistics", "mock"],
+  "docsUrl": "https://github.com/lbrenman/NodeJSExpress-US-Railway-Mock-SSE-Server-for-CodeSpace",
+  "notes": null
+}

@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MULTI-API MOCK SERVER</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;700&display=swap" rel="stylesheet">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.9/babel.min.js"></script>
+  <style>
+    :root {
+      --canvas:#000;--surface-card:#1a1a1a;--surface-elevated:#262626;--surface-soft:#0d0d0d;
+      --carbon-gray:#2b2b2b;--hairline:#3c3c3c;--hairline-strong:#262626;
+      --on-dark:#fff;--body:#bbb;--body-strong:#e6e6e6;--muted:#7e7e7e;
+      --m-blue-light:#0066b1;--m-blue-dark:#1c69d4;--m-red:#e22718;
+      --warning:#f4b400;--success:#0fa336;
+      --font:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
+    }
+    *{margin:0;padding:0;box-sizing:border-box}
+    body{font-family:var(--font);font-weight:300;font-size:16px;line-height:1.5;background:var(--canvas);color:var(--body)}
+    .wrap{max-width:1440px;margin:0 auto;padding:0 24px}
+
+    /* ── Top Nav — 64px, canvas bg, M stripe at left ──────── */
+    .nav{height:64px;background:var(--canvas);display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--hairline);padding:0 24px;position:sticky;top:0;z-index:100}
+    .nav-brand{display:flex;align-items:center;gap:12px}
+    .nav-title{font-size:14px;font-weight:700;letter-spacing:1.5px;color:var(--on-dark);text-transform:uppercase}
+    .nav-right{display:flex;align-items:center;gap:16px}
+    .nav-status{display:flex;align-items:center;gap:8px;font-size:14px;font-weight:400;letter-spacing:.5px;color:var(--body)}
+    .status-dot{width:8px;height:8px;border-radius:9999px;background:var(--success)}
+
+    /* ── M Stripe ──────────────────────────────────────────── */
+    .m-stripe{height:4px;display:flex;width:100%}
+    .m-stripe>:nth-child(1){flex:1;background:var(--m-blue-light)}
+    .m-stripe>:nth-child(2){flex:1;background:var(--m-blue-dark)}
+    .m-stripe>:nth-child(3){flex:1;background:var(--m-red)}
+    .m-stripe-sm{height:4px;width:48px;display:flex}
+    .m-stripe-sm>span{flex:1}
+    .m-stripe-sm>:nth-child(1){background:var(--m-blue-light)}
+    .m-stripe-sm>:nth-child(2){background:var(--m-blue-dark)}
+    .m-stripe-sm>:nth-child(3){background:var(--m-red)}
+
+    /* ── Category Tabs — uppercase, 2px white underline ───── */
+    .tabs{display:flex;gap:24px;padding:12px 0;border-bottom:1px solid var(--hairline);margin-bottom:40px;overflow-x:auto}
+    .tab{font-size:14px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--body);background:none;border:none;cursor:pointer;padding:12px 0;position:relative;white-space:nowrap}
+    .tab:hover{color:var(--body-strong)}
+    .tab.on{color:var(--on-dark)}
+    .tab.on::after{content:'';position:absolute;bottom:-1px;left:0;right:0;height:2px;background:var(--on-dark)}
+
+    /* ── Spec Cells — display-sm value + uppercase label ──── */
+    .specs{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:1px;background:var(--hairline);margin-bottom:40px}
+    .spec{background:var(--surface-soft);padding:24px}
+    .spec-v{font-size:32px;font-weight:700;line-height:1.15;color:var(--on-dark);letter-spacing:-.5px}
+    .spec-l{font-size:14px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);margin-top:8px}
+
+    /* ── Buttons — 0px radius, uppercase, 1.5px tracking ──── */
+    .btn{background:transparent;color:var(--on-dark);border:1px solid var(--on-dark);border-radius:0;padding:12px 32px;height:48px;font-family:var(--font);font-size:14px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;cursor:pointer}
+    .btn:hover{background:rgba(255,255,255,.08)}
+    .btn-sm{padding:8px 16px;height:36px;font-size:12px}
+
+    /* ── Tables — hairline borders, 300 weight body ────────── */
+    .section-title{font-size:24px;font-weight:700;color:var(--on-dark);text-transform:uppercase;margin-bottom:24px}
+    .tbl{width:100%;border-collapse:collapse;border:1px solid var(--hairline)}
+    .tbl th{text-align:left;padding:12px 16px;font-size:12px;font-weight:400;letter-spacing:.5px;color:var(--muted);border-bottom:1px solid var(--hairline);background:var(--surface-soft)}
+    .tbl td{padding:12px 16px;font-size:14px;font-weight:300;color:var(--body);border-bottom:1px solid var(--hairline-strong)}
+    .tbl tr:hover td{background:var(--surface-soft)}
+
+    /* ── Status Badges — hairline-bordered, no radius ──────── */
+    .st{font-size:12px;font-weight:400;letter-spacing:.5px;padding:2px 8px;border:1px solid;display:inline-block}
+    .st-ok{color:var(--success);border-color:var(--success)}.st-err{color:var(--m-red);border-color:var(--m-red)}.st-warn{color:var(--warning);border-color:var(--warning)}
+
+    /* ── Config Grid ───────────────────────────────────────── */
+    .cfg{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:1px;background:var(--hairline);margin-bottom:40px}
+    .cfg-c{background:var(--surface-card);padding:24px}
+    .cfg-k{font-size:12px;font-weight:400;letter-spacing:.5px;color:var(--muted);margin-bottom:4px}
+    .cfg-v{font-size:20px;font-weight:700;color:var(--on-dark);text-transform:uppercase}
+
+    /* ── Chart Band ────────────────────────────────────────── */
+    .chart{background:var(--surface-soft);border:1px solid var(--hairline);padding:24px;margin-bottom:40px}
+    .chart-t{font-size:14px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--on-dark);margin-bottom:16px}
+    .legend{display:flex;gap:24px;flex-wrap:wrap;margin-bottom:16px}
+    .leg{display:flex;align-items:center;gap:6px;font-size:12px;font-weight:400;letter-spacing:.5px;color:var(--body);cursor:pointer;padding:4px 8px}
+    .leg:hover{color:var(--on-dark)}.leg.off{opacity:.2}
+    .ldot{width:8px;height:8px;flex-shrink:0}
+    .chart-bar{cursor:pointer}
+
+    /* ── Detail Panel ──────────────────────────────────────── */
+    .dp{background:var(--surface-card);border:1px solid var(--hairline);margin-top:16px}
+    .dp-h{display:flex;justify-content:space-between;align-items:center;padding:12px 16px;border-bottom:1px solid var(--hairline)}
+    .dp-h h4{font-size:14px;font-weight:400;letter-spacing:.5px;color:var(--body-strong)}
+    .dp-x{background:none;border:none;color:var(--muted);cursor:pointer;font-size:20px;line-height:1}.dp-x:hover{color:var(--on-dark)}
+    .dp-sum{display:flex;gap:40px;padding:16px;border-bottom:1px solid var(--hairline);flex-wrap:wrap}
+    .dp-s{text-align:center;min-width:48px}
+    .dp-s .n{font-size:24px;font-weight:700;color:var(--on-dark)}
+    .dp-s .l{font-size:12px;font-weight:400;letter-spacing:.5px;color:var(--muted);text-transform:uppercase}
+    .dp-body{max-height:280px;overflow-y:auto}
+    .dr{display:grid;grid-template-columns:80px 56px 1fr 52px 64px;gap:8px;padding:5px 16px;font-size:12px;font-family:'SF Mono',Consolas,'Courier New',monospace;font-weight:300;border-bottom:1px solid var(--hairline-strong);align-items:center}
+    .dr.hdr{font-family:var(--font);font-size:11px;font-weight:400;letter-spacing:.5px;color:var(--muted);text-transform:uppercase;position:sticky;top:0;background:var(--surface-card);border-bottom:1px solid var(--hairline)}
+
+    /* ── Log ────────────────────────────────────────────────── */
+    .lr{font-family:'SF Mono',Consolas,'Courier New',monospace;font-size:12px;font-weight:300;padding:4px 16px;border-bottom:1px solid var(--hairline-strong);display:flex;gap:8px;align-items:center}
+    .lr-ts{color:var(--muted);min-width:80px}
+    .lr-m{font-weight:700;min-width:52px}
+    .lr-p{color:var(--body-strong);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    .lr-d{color:var(--muted);min-width:52px;text-align:right}
+
+    /* ── Method / Status colors ────────────────────────────── */
+    .cG{color:var(--success)}.cP{color:var(--m-blue-dark)}.cU{color:var(--warning)}.cD{color:var(--m-red)}
+    .s2{color:var(--success)}.s4{color:var(--warning)}.s5{color:var(--m-red)}
+
+    pre.clogs{background:var(--surface-soft);border:1px solid var(--hairline);padding:16px;font-family:'SF Mono',Consolas,monospace;font-size:12px;font-weight:300;color:var(--body);max-height:300px;overflow-y:auto;white-space:pre-wrap;word-break:break-all;margin-top:16px}
+    .section{padding:40px 0}
+    .foot{border-top:1px solid var(--hairline);padding:24px 0;margin-top:40px}
+    .foot p{margin-top:16px;font-size:12px;font-weight:400;letter-spacing:.5px;color:var(--muted)}
+  </style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const{useState,useEffect,useCallback,useMemo}=React;
+
+const AC={};const PAL=['#0066b1','#1c69d4','#e22718','#0fa336','#f4b400','#0653b6','#bbbbbb','#e6e6e6'];let pi=0;
+function ac(n){if(!AC[n]){AC[n]=PAL[pi%PAL.length];pi++}return AC[n]}
+const mcls={GET:'cG',POST:'cP',PUT:'cU',DELETE:'cD',PATCH:'cP'};
+function scls(c){return c>=500?'s5':c>=400?'s4':'s2'}
+
+function MStripe({w}){
+  return <div className={w?"m-stripe-sm":"m-stripe"} style={w?{width:w}:{}}><span/><span/><span/></div>;
+}
+
+/* ══════════════════════════════════════════════════════════ */
+function TrafficChart({logs,apis}){
+  const[sel,setSel]=useState(null);
+  const[hid,setHid]=useState(new Set());
+  const[hov,setHov]=useState(null);
+
+  const names=useMemo(()=>{const s=new Set();apis.forEach(a=>s.add(a.name));logs.forEach(l=>s.add(l.api));return[...s]},[apis,logs]);
+
+  const bkts=useMemo(()=>{
+    const now=Date.now(),BS=10000,N=30,r=[];
+    for(let i=N-1;i>=0;i--){const s=now-(i+1)*BS,e=now-i*BS;const b={s,e,byApi:{},entries:[]};names.forEach(n=>{b.byApi[n]=0});r.push(b)}
+    logs.forEach(l=>{const ts=new Date(l.timestamp).getTime();for(const b of r){if(ts>=b.s&&ts<b.e){b.byApi[l.api]=(b.byApi[l.api]||0)+1;b.entries.push(l);break}}});
+    return r;
+  },[logs,names]);
+
+  const mx=useMemo(()=>{let m=1;bkts.forEach(b=>{let s=0;names.forEach(n=>{if(!hid.has(n))s+=(b.byApi[n]||0)});if(s>m)m=s});return m},[bkts,names,hid]);
+  const toggle=n=>setHid(p=>{const x=new Set(p);x.has(n)?x.delete(n):x.add(n);return x});
+
+  const W=1140,H=200,PL=32,PB=22,PT=4,cW=W-PL-4,cH=H-PB-PT,bW=Math.floor(cW/bkts.length)-2;
+  const yt=[];for(let i=0;i<=4;i++){const v=Math.round(mx/4*i);yt.push({v,y:PT+cH-cH*v/mx})}
+
+  const sb=sel!==null?bkts[sel]:null;const se=sb?sb.entries:[];
+  const ds=useMemo(()=>{
+    if(!se.length)return null;const m={},st={};let d=0;
+    se.forEach(e=>{m[e.method]=(m[e.method]||0)+1;const k=e.statusCode>=500?'5xx':e.statusCode>=400?'4xx':'2xx';st[k]=(st[k]||0)+1;d+=e.duration});
+    return{methods:m,statuses:st,avg:Math.round(d/se.length),total:se.length};
+  },[se]);
+
+  return(
+    <div className="chart">
+      <div className="chart-t">API TRAFFIC · LAST 5 MINUTES</div>
+      <div className="legend">
+        {names.map(n=><div key={n} className={`leg ${hid.has(n)?'off':''}`} onClick={()=>toggle(n)}><div className="ldot" style={{background:ac(n)}}/>{n}</div>)}
+      </div>
+      <svg viewBox={`0 0 ${W} ${H}`} width="100%" height={H} style={{display:'block'}}>
+        {yt.map((t,i)=><g key={i}><line x1={PL} y1={t.y} x2={W-4} y2={t.y} stroke="#1a1a1a" strokeWidth="1"/><text x={PL-4} y={t.y+3} fill="#7e7e7e" fontSize="10" fontFamily="Inter,sans-serif" fontWeight="300" textAnchor="end">{t.v}</text></g>)}
+        {bkts.map((b,bi)=>{
+          const x=PL+bi*(bW+2);let yO=0;const isSel=sel===bi,isH=hov===bi;
+          return(<g key={bi} className="chart-bar" onClick={()=>setSel(isSel?null:bi)} onMouseEnter={()=>setHov(bi)} onMouseLeave={()=>setHov(null)}>
+            <rect x={x} y={PT} width={bW} height={cH} fill="transparent"/>
+            {(isSel||isH)&&<rect x={x-1} y={PT} width={bW+2} height={cH} fill={isSel?'rgba(255,255,255,.06)':'rgba(255,255,255,.02)'}/>}
+            {names.filter(n=>!hid.has(n)).map(n=>{const c=b.byApi[n]||0;if(!c)return null;const bH=c/mx*cH,bY=PT+cH-yO-bH;yO+=bH;return<rect key={n} x={x} y={bY} width={bW} height={Math.max(bH,1)} fill={ac(n)} opacity={isSel?1:isH?.9:.7}/>})}
+            {isH&&!isSel&&(()=>{let s=0;names.forEach(n=>{if(!hid.has(n))s+=(b.byApi[n]||0)});return s>0?<text x={x+bW/2} y={PT-2} fill="#bbb" fontSize="10" fontFamily="Inter,sans-serif" fontWeight="300" textAnchor="middle">{s}</text>:null})()}
+            {bi%5===0&&<text x={x+bW/2} y={H-4} fill="#7e7e7e" fontSize="9" fontFamily="Inter,sans-serif" fontWeight="300" textAnchor="middle">{new Date(b.s).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit',second:'2-digit'})}</text>}
+          </g>);
+        })}
+        {logs.length===0&&<text x={W/2} y={H/2} fill="#7e7e7e" fontSize="14" fontFamily="Inter,sans-serif" fontWeight="300" textAnchor="middle">No traffic yet — send API requests to populate</text>}
+      </svg>
+
+      {sb&&(
+        <div className="dp">
+          <div className="dp-h"><h4>{new Date(sb.s).toLocaleTimeString()} — {new Date(sb.e).toLocaleTimeString()} · {se.length} request{se.length!==1?'s':''}</h4><button className="dp-x" onClick={()=>setSel(null)}>&times;</button></div>
+          {ds&&(
+            <div className="dp-sum">
+              <div className="dp-s"><div className="n">{ds.total}</div><div className="l">REQUESTS</div></div>
+              <div className="dp-s"><div className="n">{ds.avg}ms</div><div className="l">AVG LATENCY</div></div>
+              {Object.entries(ds.methods).map(([m,c])=><div key={m} className="dp-s"><div className={`n ${mcls[m]||''}`}>{c}</div><div className="l">{m}</div></div>)}
+              {Object.entries(ds.statuses).map(([s,c])=><div key={s} className="dp-s"><div className={`n ${s==='2xx'?'s2':s==='4xx'?'s4':'s5'}`}>{c}</div><div className="l">{s}</div></div>)}
+            </div>
+          )}
+          <div className="dp-body">
+            <div className="dr hdr"><span>TIME</span><span>VERB</span><span>PATH</span><span>STATUS</span><span>DURATION</span></div>
+            {se.map((e,i)=>(
+              <div key={i} className="dr">
+                <span style={{color:'var(--muted)'}}>{new Date(e.timestamp).toLocaleTimeString()}</span>
+                <span className={mcls[e.method]||''} style={{fontWeight:700}}>{e.method}</span>
+                <span style={{color:'var(--body-strong)',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}><span style={{display:'inline-block',width:6,height:6,background:ac(e.api),marginRight:5,verticalAlign:'middle'}}/>{e.path}</span>
+                <span className={scls(e.statusCode)} style={{fontWeight:700}}>{e.statusCode}</span>
+                <span style={{color:'var(--muted)'}}>{e.duration}ms</span>
+              </div>
+            ))}
+            {se.length===0&&<p style={{padding:16,color:'var(--muted)',fontSize:12,fontWeight:300}}>No requests in this window</p>}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ══════════════════════════════════════════════════════════ */
+function App(){
+  const[tab,setTab]=useState('overview');
+  const[data,setData]=useState(null);
+  const[logs,setLogs]=useState([]);
+  const[ctrs,setCtrs]=useState([]);
+  const[selC,setSelC]=useState(null);
+  const[cLog,setCLog]=useState('');
+
+  const load=useCallback(async()=>{
+    try{
+      const[o,l,c]=await Promise.all([fetch('/admin/api/overview'),fetch('/admin/api/logs?limit=1000'),fetch('/admin/api/containers')]);
+      setData(await o.json());setLogs((await l.json()).data);setCtrs((await c.json()).data);
+    }catch(e){console.error(e)}
+  },[]);
+
+  useEffect(()=>{load();const id=setInterval(load,5000);return()=>clearInterval(id)},[load]);
+
+  const getCLog=async name=>{setSelC(name);try{const r=await fetch(`/admin/api/containers/${name}/logs?tail=200`);const j=await r.json();setCLog(j.data||'No logs')}catch{setCLog('Failed to fetch')}};
+
+  if(!data)return<div className="wrap" style={{padding:64}}><p style={{color:'var(--muted)',fontWeight:300}}>Loading...</p></div>;
+
+  const{server,database,apis}=data;
+  const tR=apis.reduce((s,a)=>s+a.requestCount,0);
+  const tE=apis.reduce((s,a)=>s+a.errorCount,0);
+
+  return(
+    <>
+      <div className="nav">
+        <div className="nav-brand"><MStripe w="48px"/><span className="nav-title">MOCK SERVER</span></div>
+        <div className="nav-right">
+          <div className="nav-status"><div className="status-dot"/>v{server.version}</div>
+          <button className="btn btn-sm" onClick={load}>REFRESH</button>
+        </div>
+      </div>
+      <MStripe/>
+
+      <div className="wrap">
+        <div className="tabs">
+          {['overview','traffic','apis','logs','containers','config'].map(t=>
+            <button key={t} className={`tab ${tab===t?'on':''}`} onClick={()=>setTab(t)}>{t}</button>
+          )}
+        </div>
+
+        {tab==='overview'&&(
+          <div className="section">
+            <div className="specs">
+              <div className="spec"><div className="spec-v">{apis.length}</div><div className="spec-l">APIS LOADED</div></div>
+              <div className="spec"><div className="spec-v">{tR}</div><div className="spec-l">TOTAL REQUESTS</div></div>
+              <div className="spec"><div className="spec-v" style={{color:tE>0?'var(--m-red)':'var(--on-dark)'}}>{tE}</div><div className="spec-l">TOTAL ERRORS</div></div>
+              <div className="spec"><div className="spec-v"><span className={`st ${database.status==='connected'?'st-ok':'st-err'}`}>{database.status.toUpperCase()}</span></div><div className="spec-l">DATABASE</div></div>
+              <div className="spec"><div className="spec-v">{Math.floor(server.uptime/60)}m {Math.floor(server.uptime%60)}s</div><div className="spec-l">UPTIME</div></div>
+              <div className="spec"><div className="spec-v" style={{fontSize:20}}>{server.nodeVersion}</div><div className="spec-l">NODE.JS</div></div>
+            </div>
+            <TrafficChart logs={logs} apis={apis}/>
+          </div>
+        )}
+
+        {tab==='traffic'&&<div className="section"><TrafficChart logs={logs} apis={apis}/></div>}
+
+        {tab==='apis'&&(
+          <div className="section">
+            <div className="section-title">REGISTERED APIS</div>
+            <table className="tbl">
+              <thead><tr><th>Name</th><th>Path</th><th>Status</th><th>Requests</th><th>Errors</th><th>Last Request</th></tr></thead>
+              <tbody>
+                {apis.map(a=>(
+                  <tr key={a.name}>
+                    <td><span style={{display:'inline-block',width:8,height:8,background:ac(a.name),marginRight:8,verticalAlign:'middle'}}/><span style={{color:'var(--on-dark)',fontWeight:700}}>{a.name}</span><br/><span style={{fontSize:12,color:'var(--muted)',fontWeight:300,marginLeft:16}}>{a.description}</span></td>
+                    <td style={{color:'var(--body-strong)',fontWeight:300}}>/api/{a.basePath}</td>
+                    <td><span className={`st ${a.status==='healthy'?'st-ok':'st-err'}`}>{a.status.toUpperCase()}</span></td>
+                    <td style={{color:'var(--on-dark)',fontWeight:700}}>{a.requestCount}</td>
+                    <td style={{color:a.errorCount>0?'var(--m-red)':'var(--body)',fontWeight:a.errorCount>0?700:300}}>{a.errorCount}</td>
+                    <td style={{fontSize:12,color:'var(--muted)',fontWeight:300}}>{a.lastRequest?new Date(a.lastRequest).toLocaleTimeString():'—'}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+
+        {tab==='logs'&&(
+          <div className="section">
+            <div className="section-title">REQUEST LOG</div>
+            <div style={{border:'1px solid var(--hairline)',maxHeight:600,overflowY:'auto'}}>
+              {logs.slice().reverse().map((l,i)=>(
+                <div key={i} className="lr">
+                  <span className="lr-ts">{new Date(l.timestamp).toLocaleTimeString()}</span>
+                  <span className={`lr-m ${mcls[l.method]||''}`}>{l.method}</span>
+                  <span className="lr-p"><span style={{display:'inline-block',width:6,height:6,background:ac(l.api),marginRight:5,verticalAlign:'middle'}}/>{l.path}</span>
+                  <span className={scls(l.statusCode)} style={{minWidth:36,fontWeight:700}}>{l.statusCode}</span>
+                  <span className="lr-d">{l.duration}ms</span>
+                </div>
+              ))}
+              {logs.length===0&&<p style={{padding:24,color:'var(--muted)',fontWeight:300}}>No requests logged yet</p>}
+            </div>
+          </div>
+        )}
+
+        {tab==='containers'&&(
+          <div className="section">
+            <div className="section-title">DOCKER CONTAINERS</div>
+            <table className="tbl">
+              <thead><tr><th>Name</th><th>Image</th><th>Status</th><th>Ports</th><th></th></tr></thead>
+              <tbody>
+                {ctrs.map(c=>(
+                  <tr key={c.id}>
+                    <td style={{color:'var(--on-dark)',fontWeight:700}}>{c.name}</td>
+                    <td style={{fontSize:12,fontWeight:300}}>{c.image}</td>
+                    <td><span className={`st ${c.status?.includes('Up')?'st-ok':'st-err'}`}>{(c.status||'unknown').toUpperCase()}</span></td>
+                    <td style={{fontSize:12,fontWeight:300}}>{c.ports}</td>
+                    <td><button className="btn btn-sm" onClick={()=>getCLog(c.name)}>VIEW LOGS</button></td>
+                  </tr>
+                ))}
+                {ctrs.length===0&&<tr><td colSpan={5} style={{color:'var(--muted)',fontWeight:300}}>No containers found</td></tr>}
+              </tbody>
+            </table>
+            {selC&&(<><div style={{marginTop:24,fontSize:14,fontWeight:700,letterSpacing:'1.5px',textTransform:'uppercase',color:'var(--on-dark)'}}>LOGS — {selC}</div><pre className="clogs">{cLog}</pre></>)}
+          </div>
+        )}
+
+        {tab==='config'&&(
+          <div className="section">
+            <div className="section-title">SERVER CONFIGURATION</div>
+            <div className="cfg">
+              <div className="cfg-c"><div className="cfg-k">Auth Mode</div><div className="cfg-v">{server.authMode}</div></div>
+              <div className="cfg-c"><div className="cfg-k">Pagination</div><div className="cfg-v">{server.paginationMode}</div></div>
+              <div className="cfg-c"><div className="cfg-k">Error Rate 500</div><div className="cfg-v">{(server.errorSimulation.rate500*100).toFixed(0)}%</div></div>
+              <div className="cfg-c"><div className="cfg-k">Error Rate 429</div><div className="cfg-v">{(server.errorSimulation.rate429*100).toFixed(0)}%</div></div>
+              <div className="cfg-c"><div className="cfg-k">Timeout Rate</div><div className="cfg-v">{(server.errorSimulation.rateTimeout*100).toFixed(0)}%</div></div>
+              <div className="cfg-c"><div className="cfg-k">Database</div><div className="cfg-v">{database.status}</div></div>
+            </div>
+          </div>
+        )}
+
+        <div className="foot">
+          <MStripe/>
+          <p>Multi-API Mock Server · Admin Portal</p>
+        </div>
+      </div>
+    </>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+</script>
+</body>
+</html>

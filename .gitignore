@@ -1,0 +1,35 @@
+# Environment
+.env
+
+# Persistent data directories (bind-mounted volumes)
+data/
+services/keycloak/imports/*.json
+!services/keycloak/imports/.gitkeep
+
+# Node
+node_modules/
+npm-debug.log*
+
+# Dashboard build artifacts
+dashboard/client/dist/
+
+# LiteLLM SQLite DB
+services/litellm/data/*.db
+!services/litellm/data/.gitkeep
+
+# Open WebUI data
+services/open-webui/data/
+!services/open-webui/data/.gitkeep
+
+# SFTP uploads
+services/sftp/upload/
+!services/sftp/upload/.gitkeep
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/settings.json
+*.swp
+*.swo

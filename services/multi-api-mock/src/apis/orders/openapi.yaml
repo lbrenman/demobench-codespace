@@ -1,0 +1,252 @@
+tags:
+  - name: Orders
+    description: Manage e-commerce orders — linked to contacts and products with line items
+
+components:
+  schemas:
+    Order:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        order_number:
+          type: string
+          example: ORD-2025-001
+        contact_id:
+          type: integer
+          example: 1
+        contact_name:
+          type: string
+          example: Alice Chen
+        contact_email:
+          type: string
+          example: alice.chen@techcorp.com
+        status:
+          type: string
+          enum: [pending, confirmed, processing, shipped, delivered, cancelled]
+          example: pending
+        subtotal:
+          type: number
+          example: 2589.94
+        tax:
+          type: number
+          example: 207.20
+        shipping:
+          type: number
+          example: 0
+        total:
+          type: number
+          example: 2797.14
+        currency:
+          type: string
+          example: USD
+        shipping_address:
+          type: string
+        billing_address:
+          type: string
+        notes:
+          type: string
+        ordered_at:
+          type: string
+          format: date-time
+        shipped_at:
+          type: string
+          format: date-time
+          nullable: true
+        delivered_at:
+          type: string
+          format: date-time
+          nullable: true
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/OrderItem"
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    OrderItem:
+      type: object
+      properties:
+        id:
+          type: integer
+        order_id:
+          type: integer
+        product_id:
+          type: integer
+        product_name:
+          type: string
+        product_sku:
+          type: string
+        quantity:
+          type: integer
+        unit_price:
+          type: number
+        total_price:
+          type: number
+
+    OrderInput:
+      type: object
+      required:
+        - contact_id
+        - items
+      properties:
+        contact_id:
+          type: integer
+          example: 1
+          description: ID of the contact placing the order
+        items:
+          type: array
+          minItems: 1
+          items:
+            type: object
+            required:
+              - product_id
+              - quantity
+            properties:
+              product_id:
+                type: integer
+                example: 1
+              quantity:
+                type: integer
+                minimum: 1
+                example: 2
+        shipping_address:
+          type: string
+        billing_address:
+          type: string
+        notes:
+          type: string
+
+paths:
+  /orders:
+    get:
+      summary: List orders (paginated)
+      tags: [Orders]
+      parameters:
+        - in: query
+          name: page
+          schema:
+            type: integer
+            default: 1
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 10
+      responses:
+        "200":
+          description: Paginated list of orders
+        "401":
+          description: Unauthorized
+
+    post:
+      summary: Create an order
+      tags: [Orders]
+      description: Creates an order linked to a contact with line items referencing products. Prices are looked up from the products table. Tax (8%) and shipping (free over $500) are calculated automatically.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/OrderInput"
+            example:
+              contact_id: 1
+              items:
+                - product_id: 1
+                  quantity: 1
+                - product_id: 3
+                  quantity: 2
+              shipping_address: "100 Market St, San Francisco, CA"
+      responses:
+        "201":
+          description: Order created with calculated totals
+        "400":
+          description: Validation error or invalid contact/product ID
+
+  /orders/{id}:
+    get:
+      summary: Get order by ID (includes line items)
+      tags: [Orders]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Order with items
+        "404":
+          description: Order not found
+
+    put:
+      summary: Update order status
+      tags: [Orders]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                status:
+                  type: string
+                  enum: [pending, confirmed, processing, shipped, delivered, cancelled]
+                notes:
+                  type: string
+      responses:
+        "200":
+          description: Order updated
+        "404":
+          description: Order not found
+
+    delete:
+      summary: Delete an order
+      tags: [Orders]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Order deleted (cascades to order_items)
+        "404":
+          description: Order not found
+
+  /orders/{id}/items:
+    get:
+      summary: Get line items for an order
+      tags: [Orders]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: List of order items with product details
+        "404":
+          description: Order not found
+
+  /orders/health:
+    get:
+      summary: Orders API health check
+      tags: [Orders]
+      security: []
+      responses:
+        "200":
+          description: API is healthy

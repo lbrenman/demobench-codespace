@@ -1,0 +1,150 @@
+{
+  "info": {
+    "_postman_id": "dee3c729-c9af-4cac-8c11-2636924c054e",
+    "name": "Jaeger OTLP Traces",
+    "description": "Send OpenTelemetry traces to Jaeger running in GitHub Codespaces\n\n# Sending Traces from Postman\n\nUse Postman to send OTLP traces directly to your Jaeger instance.\n\n## Quick Setup\n\n### Step 1: Import Collection\n\n1. Open Postman\n2. Click **Import** button\n3. Select `Jaeger_OTLP_Postman_Collection.json`\n4. The collection will appear in your sidebar\n\n### Step 2: Configure Your Codespace URL\n\n1. In Postman, click on the **\"Jaeger OTLP Traces\"** collection\n2. Go to the **Variables** tab\n3. Update the `codespace_base` variable with your Codespace ID\n\n**Example:**\n- If your Jaeger UI is: `https://orange-happiness-jjj4p7g7r2qw9g-16686.app.github.dev`\n- Set `codespace_base` to: `orange-happiness-jjj4p7g7r2qw9g`\n\n4. Click **Save**\n\n### Step 3: Send a Trace\n\n1. Select any request from the collection:\n   - **Send Simple Trace** - Basic test\n   - **Send Database Query Trace** - Simulates DB operation\n   - **Send API Call Trace** - Simulates HTTP call\n   - **Send Error Trace** - Shows error handling\n\n2. Click **Send**\n\n3. You should get a **200 OK** response (empty body is normal)\n\n4. Go to your Jaeger UI and search for service: **\"postman-client\"**\n\n## What's Included\n\nThe collection includes 4 pre-configured requests:\n\n### 1. Send Simple Trace\nBasic trace with HTTP attributes - perfect for testing connectivity.\n\n### 2. Send Database Query Trace  \nSimulates a database SELECT operation with:\n- Database system (PostgreSQL)\n- SQL statement\n- Rows returned\n\n### 3. Send API Call Trace\nSimulates an HTTP GET request with:\n- HTTP method and URL\n- Status code\n- Response size\n\n### 4. Send Error Trace\nShows how to send failed operations with:\n- Error flag\n- Error type and message\n- Error status code\n\n## Understanding the Format\n\nEach request sends an OTLP JSON payload with this structure:\n\n```json\n{\n  \"resourceSpans\": [\n    {\n      \"resource\": {\n        \"attributes\": [\n          {\n            \"key\": \"service.name\",\n            \"value\": {\"stringValue\": \"postman-client\"}\n          }\n        ]\n      },\n      \"scopeSpans\": [\n        {\n          \"spans\": [\n            {\n              \"traceId\": \"unique-trace-id\",\n              \"spanId\": \"unique-span-id\",\n              \"name\": \"operation.name\",\n              \"startTimeUnixNano\": \"1234567890000000\",\n              \"endTimeUnixNano\": \"1234567890500000\",\n              \"attributes\": [...],\n              \"status\": {\"code\": 1}\n            }\n          ]\n        }\n      ]\n    }\n  ]\n}\n```\n\n## Dynamic Variables\n\nThe collection uses Postman's built-in variables:\n\n- `{{$timestamp}}` - Current Unix timestamp (in seconds)\n- `{{codespace_base}}` - Your Codespace URL (you set this)\n\n**Note about IDs:** The trace and span IDs are hardcoded hex strings because Postman's `{{$randomUUID}}` includes dashes which Jaeger doesn't accept. Each request has unique IDs, so you can send them multiple times and they'll create separate traces.\n\nIf you want truly random IDs each time, you'll need to manually edit the hex strings or use a Pre-request Script (see Customizing section).\n\n## Customizing Traces\n\n### Change the Service Name\n\nEdit the `service.name` attribute:\n```json\n{\n  \"key\": \"service.name\",\n  \"value\": {\"stringValue\": \"my-custom-service\"}\n}\n```\n\n### Change the Operation Name\n\nEdit the `name` field:\n```json\n\"name\": \"my.custom.operation\"\n```\n\n### Add Custom Attributes\n\nAdd to the `attributes` array:\n```json\n{\n  \"key\": \"user.id\",\n  \"value\": {\"stringValue\": \"12345\"}\n}\n```\n\n### Span Kinds\n\n- `1` = INTERNAL (default operation)\n- `2` = SERVER (incoming request)\n- `3` = CLIENT (outgoing request)\n- `4` = PRODUCER (message queue)\n- `5` = CONSUMER (message queue)\n\n### Status Codes\n\n- `0` = UNSET (default)\n- `1` = OK (success)\n- `2` = ERROR (failure)\n\n## Generating Random IDs (Advanced)\n\nIf you want truly random trace/span IDs on each request, add this **Pre-request Script** to any request:\n\n```javascript\n// Generate random hex string\nfunction randomHex(length) {\n    let result = '';\n    for (let i = 0; i < length; i++) {\n        result += Math.floor(Math.random() * 16).toString(16);\n    }\n    return result;\n}\n\n// Set as environment variables\npm.environment.set(\"traceId\", randomHex(32));\npm.environment.set(\"spanId\", randomHex(16));\n```\n\nThen in your request body, use:\n```json\n\"traceId\": \"{{traceId}}\",\n\"spanId\": \"{{spanId}}\"\n```\n\nThis generates new IDs every time you send the request!\n\n## Troubleshooting\n\n### Response: 400 Bad Request\n\n**Check your JSON:**\n- Make sure trace IDs are 32 hex characters (16 bytes)\n- Make sure span IDs are 16 hex characters (8 bytes)\n- Timestamps should be in nanoseconds\n\n**Note:** Postman's `{{$randomUUID}}` includes dashes, but the collection handles this by concatenating two UUIDs for trace IDs.\n\n### Response: 404 Not Found\n\n**Check your URL:**\n- Verify `codespace_base` variable is correct\n- URL should be: `https://YOUR-BASE-4318.app.github.dev/v1/traces`\n- Make sure port 4318 is forwarded in your Codespace\n\n### No Traces in Jaeger\n\n**Check the service name:**\n- In Jaeger UI, select **\"postman-client\"** from dropdown\n- Click \"Find Traces\"\n- Try clicking \"Lookback: Last Hour\" and increase the time range\n\n**Verify Jaeger is running:**\n- Open your Jaeger UI - if it loads, Jaeger is running\n- In Codespace: `docker compose ps`\n\n## Tips\n\n**Save Common Requests:**\n- Right-click a request → **Duplicate**\n- Modify and save with a new name\n\n**Use Postman Environments:**\n- Create environments for different Codespaces\n- Switch between them easily\n\n**Chain Requests:**\n- Use Postman's collection runner\n- Send multiple traces in sequence\n\n**Export and Share:**\n- Export the collection to share with team\n- They just need to update the `codespace_base` variable\n\n## Next Steps\n\nTry creating parent-child span relationships:\n1. Send one request and note the `traceId` from the response\n2. Create a new request with the same `traceId` but different `spanId`\n3. Add a parent reference to link them\n\nThis lets you visualize complex multi-step operations in Jaeger!\n",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "592344"
+  },
+  "item": [
+    {
+      "name": "Send Simple Trace",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"resourceSpans\": [\n    {\n      \"resource\": {\n        \"attributes\": [\n          {\n            \"key\": \"service.name\",\n            \"value\": {\n              \"stringValue\": \"postman-client\"\n            }\n          },\n          {\n            \"key\": \"host.name\",\n            \"value\": {\n              \"stringValue\": \"postman\"\n            }\n          }\n        ]\n      },\n      \"scopeSpans\": [\n        {\n          \"scope\": {\n            \"name\": \"postman-test\",\n            \"version\": \"1.0.0\"\n          },\n          \"spans\": [\n            {\n              \"traceId\": \"a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6\",\n              \"spanId\": \"a1b2c3d4e5f6a7b8\",\n              \"name\": \"test.operation\",\n              \"kind\": 1,\n              \"startTimeUnixNano\": \"{{$timestamp}}000000000\",\n              \"endTimeUnixNano\": \"{{$timestamp}}500000000\",\n              \"attributes\": [\n                {\n                  \"key\": \"http.method\",\n                  \"value\": {\n                    \"stringValue\": \"POST\"\n                  }\n                },\n                {\n                  \"key\": \"http.url\",\n                  \"value\": {\n                    \"stringValue\": \"https://api.example.com/data\"\n                  }\n                },\n                {\n                  \"key\": \"http.status_code\",\n                  \"value\": {\n                    \"intValue\": 200\n                  }\n                }\n              ],\n              \"status\": {\n                \"code\": 1\n              }\n            }\n          ]\n        }\n      ]\n    }\n  ]\n}"
+        },
+        "url": {
+          "raw": "https://{{codespace_base}}-4318.app.github.dev/v1/traces",
+          "protocol": "https",
+          "host": [
+            "{{codespace_base}}-4318",
+            "app",
+            "github",
+            "dev"
+          ],
+          "path": [
+            "v1",
+            "traces"
+          ]
+        },
+        "description": "Send a simple trace with one span to Jaeger"
+      },
+      "response": []
+    },
+    {
+      "name": "Send Database Query Trace",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"resourceSpans\": [\n    {\n      \"resource\": {\n        \"attributes\": [\n          {\n            \"key\": \"service.name\",\n            \"value\": {\n              \"stringValue\": \"postman-client\"\n            }\n          }\n        ]\n      },\n      \"scopeSpans\": [\n        {\n          \"scope\": {\n            \"name\": \"database-operations\"\n          },\n          \"spans\": [\n            {\n              \"traceId\": \"b1c2d3e4f5a6b7c8d9e0f1a2b3c4d5e6\",\n              \"spanId\": \"b1c2d3e4f5a6b7c8\",\n              \"name\": \"database.select\",\n              \"kind\": 3,\n              \"startTimeUnixNano\": \"{{$timestamp}}000000000\",\n              \"endTimeUnixNano\": \"{{$timestamp}}200000000\",\n              \"attributes\": [\n                {\n                  \"key\": \"db.system\",\n                  \"value\": {\n                    \"stringValue\": \"postgresql\"\n                  }\n                },\n                {\n                  \"key\": \"db.operation\",\n                  \"value\": {\n                    \"stringValue\": \"SELECT\"\n                  }\n                },\n                {\n                  \"key\": \"db.statement\",\n                  \"value\": {\n                    \"stringValue\": \"SELECT * FROM users WHERE id = ?\"\n                  }\n                },\n                {\n                  \"key\": \"db.rows_returned\",\n                  \"value\": {\n                    \"intValue\": 1\n                  }\n                }\n              ],\n              \"status\": {\n                \"code\": 1\n              }\n            }\n          ]\n        }\n      ]\n    }\n  ]\n}"
+        },
+        "url": {
+          "raw": "https://{{codespace_base}}-4318.app.github.dev/v1/traces",
+          "protocol": "https",
+          "host": [
+            "{{codespace_base}}-4318",
+            "app",
+            "github",
+            "dev"
+          ],
+          "path": [
+            "v1",
+            "traces"
+          ]
+        },
+        "description": "Send a database query trace"
+      },
+      "response": []
+    },
+    {
+      "name": "Send API Call Trace",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"resourceSpans\": [\n    {\n      \"resource\": {\n        \"attributes\": [\n          {\n            \"key\": \"service.name\",\n            \"value\": {\n              \"stringValue\": \"postman-client\"\n            }\n          }\n        ]\n      },\n      \"scopeSpans\": [\n        {\n          \"scope\": {\n            \"name\": \"http-client\"\n          },\n          \"spans\": [\n            {\n              \"traceId\": \"c1d2e3f4a5b6c7d8e9f0a1b2c3d4e5f6\",\n              \"spanId\": \"c1d2e3f4a5b6c7d8\",\n              \"name\": \"GET /api/users\",\n              \"kind\": 2,\n              \"startTimeUnixNano\": \"{{$timestamp}}000000000\",\n              \"endTimeUnixNano\": \"{{$timestamp}}350000000\",\n              \"attributes\": [\n                {\n                  \"key\": \"http.method\",\n                  \"value\": {\n                    \"stringValue\": \"GET\"\n                  }\n                },\n                {\n                  \"key\": \"http.url\",\n                  \"value\": {\n                    \"stringValue\": \"https://api.example.com/users\"\n                  }\n                },\n                {\n                  \"key\": \"http.status_code\",\n                  \"value\": {\n                    \"intValue\": 200\n                  }\n                },\n                {\n                  \"key\": \"http.response_content_length\",\n                  \"value\": {\n                    \"intValue\": 4567\n                  }\n                }\n              ],\n              \"status\": {\n                \"code\": 1\n              }\n            }\n          ]\n        }\n      ]\n    }\n  ]\n}"
+        },
+        "url": {
+          "raw": "https://{{codespace_base}}-4318.app.github.dev/v1/traces",
+          "protocol": "https",
+          "host": [
+            "{{codespace_base}}-4318",
+            "app",
+            "github",
+            "dev"
+          ],
+          "path": [
+            "v1",
+            "traces"
+          ]
+        },
+        "description": "Send an HTTP API call trace"
+      },
+      "response": []
+    },
+    {
+      "name": "Send Error Trace",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"resourceSpans\": [\n    {\n      \"resource\": {\n        \"attributes\": [\n          {\n            \"key\": \"service.name\",\n            \"value\": {\n              \"stringValue\": \"postman-client\"\n            }\n          }\n        ]\n      },\n      \"scopeSpans\": [\n        {\n          \"scope\": {\n            \"name\": \"error-simulation\"\n          },\n          \"spans\": [\n            {\n              \"traceId\": \"d1e2f3a4b5c6d7e8f9a0b1c2d3e4f5a6\",\n              \"spanId\": \"d1e2f3a4b5c6d7e8\",\n              \"name\": \"failed.operation\",\n              \"kind\": 1,\n              \"startTimeUnixNano\": \"{{$timestamp}}000000000\",\n              \"endTimeUnixNano\": \"{{$timestamp}}100000000\",\n              \"attributes\": [\n                {\n                  \"key\": \"error\",\n                  \"value\": {\n                    \"boolValue\": true\n                  }\n                },\n                {\n                  \"key\": \"error.type\",\n                  \"value\": {\n                    \"stringValue\": \"TimeoutException\"\n                  }\n                },\n                {\n                  \"key\": \"error.message\",\n                  \"value\": {\n                    \"stringValue\": \"Connection timeout after 30 seconds\"\n                  }\n                }\n              ],\n              \"status\": {\n                \"code\": 2,\n                \"message\": \"Connection timeout\"\n              }\n            }\n          ]\n        }\n      ]\n    }\n  ]\n}"
+        },
+        "url": {
+          "raw": "https://{{codespace_base}}-4318.app.github.dev/v1/traces",
+          "protocol": "https",
+          "host": [
+            "{{codespace_base}}-4318",
+            "app",
+            "github",
+            "dev"
+          ],
+          "path": [
+            "v1",
+            "traces"
+          ]
+        },
+        "description": "Send a trace with an error status"
+      },
+      "response": []
+    }
+  ],
+  "variable": [
+    {
+      "key": "codespace_base",
+      "value": "orange-happiness-jjj4p7g7r2qw9g",
+      "type": "string"
+    }
+  ]
+}

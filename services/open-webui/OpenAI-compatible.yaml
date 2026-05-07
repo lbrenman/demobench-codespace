@@ -1,0 +1,380 @@
+openapi: 3.0.0
+info:
+  title: OpenAI Compatible API
+  version: 1.0.0
+  description: |
+    An OpenAI-compatible chat completions proxy API. Accepts requests in OpenAI
+    format and forwards them to a backend LLM provider (e.g. Anthropic Claude).
+    Compatible with Open WebUI, LiteLLM clients, and any OpenAI SDK.
+
+servers:
+  - url: http://localhost:3000
+    description: Local / Codespace development
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      description: |
+        API key passed as a Bearer token in the Authorization header.
+        Open WebUI sends: Authorization: Bearer <your-api-key>
+
+  schemas:
+
+    Message:
+      type: object
+      required: [role, content]
+      properties:
+        role:
+          type: string
+          enum: [system, user, assistant]
+          example: user
+        content:
+          type: string
+          example: "What is the capital of France?"
+
+    ChatCompletionRequest:
+      type: object
+      required: [model, messages]
+      properties:
+        model:
+          type: string
+          description: Model identifier (can be any string — your API maps this to the backend model)
+          example: my-claude-proxy
+        messages:
+          type: array
+          items:
+            $ref: '#/components/schemas/Message'
+          description: Full conversation history. Your API passes this to the backend LLM.
+        temperature:
+          type: number
+          minimum: 0
+          maximum: 2
+          default: 1
+          example: 0.7
+        max_tokens:
+          type: integer
+          minimum: 1
+          example: 1024
+        stream:
+          type: boolean
+          default: false
+          description: |
+            If true, responses are streamed as server-sent events (SSE).
+            Open WebUI uses streaming by default.
+        top_p:
+          type: number
+          minimum: 0
+          maximum: 1
+          example: 1
+        stop:
+          oneOf:
+            - type: string
+            - type: array
+              items:
+                type: string
+          description: Stop sequences
+        system:
+          type: string
+          description: |
+            Optional system prompt. If provided, prepended as a system message.
+            Some clients send this separately rather than in the messages array.
+
+    ChatCompletionChoice:
+      type: object
+      properties:
+        index:
+          type: integer
+          example: 0
+        message:
+          $ref: '#/components/schemas/Message'
+        finish_reason:
+          type: string
+          enum: [stop, length, content_filter]
+          example: stop
+
+    Usage:
+      type: object
+      properties:
+        prompt_tokens:
+          type: integer
+          example: 24
+        completion_tokens:
+          type: integer
+          example: 118
+        total_tokens:
+          type: integer
+          example: 142
+
+    ChatCompletionResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          example: chatcmpl-abc123
+        object:
+          type: string
+          example: chat.completion
+        created:
+          type: integer
+          description: Unix timestamp
+          example: 1712345678
+        model:
+          type: string
+          example: my-claude-proxy
+        choices:
+          type: array
+          items:
+            $ref: '#/components/schemas/ChatCompletionChoice'
+        usage:
+          $ref: '#/components/schemas/Usage'
+
+    # Streaming chunk — returned for each SSE event when stream: true
+    ChatCompletionChunk:
+      type: object
+      properties:
+        id:
+          type: string
+          example: chatcmpl-abc123
+        object:
+          type: string
+          example: chat.completion.chunk
+        created:
+          type: integer
+          example: 1712345678
+        model:
+          type: string
+          example: my-claude-proxy
+        choices:
+          type: array
+          items:
+            type: object
+            properties:
+              index:
+                type: integer
+              delta:
+                type: object
+                properties:
+                  role:
+                    type: string
+                    enum: [assistant]
+                  content:
+                    type: string
+                    example: "Paris"
+              finish_reason:
+                type: string
+                nullable: true
+                example: null
+
+    Model:
+      type: object
+      properties:
+        id:
+          type: string
+          example: my-claude-proxy
+        object:
+          type: string
+          example: model
+        created:
+          type: integer
+          example: 1712345678
+        owned_by:
+          type: string
+          example: custom
+
+    ModelList:
+      type: object
+      properties:
+        object:
+          type: string
+          example: list
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/Model'
+
+    HealthResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          example: ok
+        timestamp:
+          type: string
+          format: date-time
+        version:
+          type: string
+          example: 1.0.0
+
+    Error:
+      type: object
+      properties:
+        error:
+          type: object
+          properties:
+            message:
+              type: string
+              example: "Invalid API key"
+            type:
+              type: string
+              example: invalid_request_error
+            code:
+              type: string
+              nullable: true
+              example: invalid_api_key
+
+security:
+  - BearerAuth: []
+
+paths:
+
+  /health:
+    get:
+      summary: Health check
+      description: Returns service health. No auth required.
+      tags: [Health]
+      security: []
+      responses:
+        '200':
+          description: Service is healthy
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+
+  /v1/models:
+    get:
+      summary: List available models
+      description: |
+        Returns the list of models this proxy exposes. Open WebUI calls this
+        endpoint on startup to populate the model selector dropdown.
+      tags: [Models]
+      responses:
+        '200':
+          description: List of available models
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ModelList'
+              example:
+                object: list
+                data:
+                  - id: my-claude-proxy
+                    object: model
+                    created: 1712345678
+                    owned_by: custom
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /v1/chat/completions:
+    post:
+      summary: Chat completion
+      description: |
+        OpenAI-compatible chat completions endpoint. Your API receives the
+        messages array and forwards it to the backend LLM (e.g. Anthropic).
+
+        Supports both standard (non-streaming) and streaming (SSE) responses.
+
+        **Streaming:** When `stream: true`, the response is a stream of
+        server-sent events. Each event is a JSON-encoded `ChatCompletionChunk`.
+        The stream ends with a `data: [DONE]` event.
+
+        **Example SSE stream:**
+        ```
+        data: {"id":"chatcmpl-abc","object":"chat.completion.chunk","choices":[{"delta":{"role":"assistant","content":""},"index":0}]}
+
+        data: {"id":"chatcmpl-abc","object":"chat.completion.chunk","choices":[{"delta":{"content":"Paris"},"index":0}]}
+
+        data: [DONE]
+        ```
+      tags: [Chat]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ChatCompletionRequest'
+            examples:
+              simple:
+                summary: Simple non-streaming request
+                value:
+                  model: my-claude-proxy
+                  messages:
+                    - role: user
+                      content: "What is the capital of France?"
+                  temperature: 0.7
+                  max_tokens: 256
+                  stream: false
+              streaming:
+                summary: Streaming request
+                value:
+                  model: my-claude-proxy
+                  messages:
+                    - role: system
+                      content: "You are a helpful assistant."
+                    - role: user
+                      content: "Tell me a joke."
+                  stream: true
+              with_history:
+                summary: Multi-turn conversation
+                value:
+                  model: my-claude-proxy
+                  messages:
+                    - role: user
+                      content: "My name is Leor."
+                    - role: assistant
+                      content: "Nice to meet you, Leor!"
+                    - role: user
+                      content: "What's my name?"
+                  stream: false
+      responses:
+        '200':
+          description: |
+            Chat completion response.
+            - If `stream: false` → returns a `ChatCompletionResponse` JSON object
+            - If `stream: true` → returns `text/event-stream` SSE chunks
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ChatCompletionResponse'
+              example:
+                id: chatcmpl-abc123
+                object: chat.completion
+                created: 1712345678
+                model: my-claude-proxy
+                choices:
+                  - index: 0
+                    message:
+                      role: assistant
+                      content: "The capital of France is Paris."
+                    finish_reason: stop
+                usage:
+                  prompt_tokens: 14
+                  completion_tokens: 9
+                  total_tokens: 23
+            text/event-stream:
+              schema:
+                $ref: '#/components/schemas/ChatCompletionChunk'
+        '400':
+          description: Bad request (missing required fields)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized — missing or invalid API key
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Server error or upstream LLM error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'

@@ -1,0 +1,16 @@
+{
+  "id": "metric-sse",
+  "name": "Metric SSE Server",
+  "description": "Server-Sent Events stream of live system metrics (CPU, memory, request rate, error rate) with a built-in HTML dashboard. No database required.",
+  "profile": "sse",
+  "composeService": "metric-sse",
+  "port": 3003,
+  "healthPath": "/health",
+  "uiPath": "/dashboard.html",
+  "category": "Streaming",
+  "dependsOn": [],
+  "requiredSecrets": [],
+  "tags": ["sse", "streaming", "metrics", "mock"],
+  "docsUrl": "https://github.com/lbrenman/nodejs-express-sse-mock-metrics-server-codespace",
+  "notes": null
+}

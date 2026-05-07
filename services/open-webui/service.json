@@ -1,0 +1,16 @@
+{
+  "id": "open-webui",
+  "name": "Open WebUI",
+  "description": "Feature-rich chat UI supporting OpenAI-compatible APIs, Anthropic, and local Ollama models. Defaults to using the LiteLLM proxy.",
+  "profile": "ai",
+  "composeService": "open-webui",
+  "port": 8081,
+  "healthPath": "/health",
+  "uiPath": "/",
+  "category": "AI",
+  "dependsOn": ["litellm"],
+  "requiredSecrets": ["LITELLM_MASTER_KEY"],
+  "tags": ["llm", "ai", "chat", "ui"],
+  "docsUrl": "https://github.com/lbrenman/open-webui-codespace",
+  "notes": "Works best with litellm running. Set OPEN_WEBUI_OPENAI_API_BASE_URL if pointing to a different LLM backend."
+}

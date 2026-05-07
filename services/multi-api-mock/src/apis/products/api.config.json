@@ -1,0 +1,7 @@
+{
+  "name": "Products API",
+  "basePath": "products",
+  "resource": "products",
+  "description": "Manage product catalog — items with pricing, inventory, and categories",
+  "version": "1.0.0"
+}

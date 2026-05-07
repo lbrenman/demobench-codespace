@@ -1,0 +1,1925 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<title>FHIR R4 Explorer</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700&family=Lora:ital,wght@0,400;0,500;1,400&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<style>
+/* ── DESIGN TOKENS ───────────────────────────────── */
+:root {
+  /* Light palette — warm clinical white */
+  --bg:          #f8f6f2;
+  --surface:     #ffffff;
+  --surface2:    #f2efe9;
+  --surface3:    #e9e5dc;
+  --border:      #ddd9d0;
+  --border2:     #ccc8be;
+  --text:        #181714;
+  --text2:       #4a4740;
+  --muted:       #857f74;
+  --accent:      #0d5c3e;
+  --accent-lt:   #e6f4ec;
+  --accent2:     #8b3a0f;
+  --accent2-lt:  #fdf0e8;
+  --blue:        #1a4f8a;
+  --blue-lt:     #eef3fb;
+  --red:         #b5271e;
+  --red-lt:      #fdf0ef;
+  --amber:       #9a620a;
+  --amber-lt:    #fef8ed;
+  --shadow-sm:   0 1px 2px rgba(0,0,0,.05), 0 1px 4px rgba(0,0,0,.04);
+  --shadow-md:   0 3px 10px rgba(0,0,0,.07), 0 1px 3px rgba(0,0,0,.05);
+  --shadow-lg:   0 8px 28px rgba(0,0,0,.10), 0 3px 8px rgba(0,0,0,.06);
+  --shadow-xl:   0 20px 60px rgba(0,0,0,.14);
+  --r:           8px;
+  --r-lg:        14px;
+  --sidebar:     256px;
+  --topbar:      54px;
+  --font:        'Syne', sans-serif;
+  --font-body:   'Lora', serif;
+  --font-mono:   'JetBrains Mono', monospace;
+  --ease:        cubic-bezier(.22,.68,0,1.2);
+  --trans:       .16s ease;
+}
+[data-theme="dark"] {
+  --bg:          #0f0e0c;
+  --surface:     #1a1916;
+  --surface2:    #22201c;
+  --surface3:    #2c2a25;
+  --border:      #35322c;
+  --border2:     #45423a;
+  --text:        #f0ede6;
+  --text2:       #b8b4aa;
+  --muted:       #7a776e;
+  --accent:      #2ecc7a;
+  --accent-lt:   #0a1f14;
+  --accent2:     #e07840;
+  --accent2-lt:  #1f1008;
+  --blue:        #5a9bd4;
+  --blue-lt:     #0a1520;
+  --red:         #e05050;
+  --red-lt:      #200c0c;
+  --amber:       #e0a840;
+  --amber-lt:    #1e1600;
+  --shadow-sm:   0 1px 2px rgba(0,0,0,.2);
+  --shadow-md:   0 3px 10px rgba(0,0,0,.35);
+  --shadow-lg:   0 8px 28px rgba(0,0,0,.5);
+  --shadow-xl:   0 20px 60px rgba(0,0,0,.7);
+}
+
+/* ── RESET ──────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { height: 100%; -webkit-text-size-adjust: 100%; }
+body {
+  height: 100%; min-height: 100dvh;
+  font-family: var(--font);
+  background: var(--bg);
+  color: var(--text);
+  overflow: hidden;
+  transition: background var(--trans), color var(--trans);
+}
+button { font-family: inherit; cursor: pointer; border: none; background: none; color: inherit; }
+input, textarea, select { font-family: inherit; color: inherit; }
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 10px; }
+
+/* ── APP SHELL ──────────────────────────────────── */
+#shell { display: flex; height: 100vh; height: 100dvh; }
+
+/* ── SIDEBAR ────────────────────────────────────── */
+#sidebar {
+  width: var(--sidebar);
+  display: flex;
+  flex-direction: column;
+  background: var(--surface);
+  border-right: 1px solid var(--border);
+  flex-shrink: 0;
+  z-index: 200;
+  transition: transform var(--trans), background var(--trans);
+}
+.sidebar-brand {
+  padding: 18px 16px 14px;
+  border-bottom: 1px solid var(--border);
+}
+.brand-mark {
+  display: flex; align-items: center; gap: 9px;
+}
+.brand-hex {
+  width: 30px; height: 30px;
+  background: var(--accent);
+  clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+  display: flex; align-items: center; justify-content: center;
+  color: white; font-size: .75rem; font-weight: 700; letter-spacing: -.02em;
+  flex-shrink: 0;
+}
+.brand-text { line-height: 1.1; }
+.brand-title { font-size: .95rem; font-weight: 700; letter-spacing: -.01em; }
+.brand-sub { font-size: .65rem; color: var(--muted); font-family: var(--font-mono); margin-top: 1px; }
+
+.sidebar-search {
+  padding: 10px 10px 6px;
+  border-bottom: 1px solid var(--border);
+}
+.search-wrap {
+  position: relative;
+}
+.search-wrap svg {
+  position: absolute; left: 9px; top: 50%; transform: translateY(-50%);
+  width: 13px; height: 13px; color: var(--muted); pointer-events: none;
+}
+.search-wrap input {
+  width: 100%;
+  padding: 6px 9px 6px 28px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface2);
+  font-size: .75rem;
+  font-family: var(--font);
+  transition: border-color var(--trans), background var(--trans);
+}
+.search-wrap input:focus { outline: none; border-color: var(--accent); background: var(--surface); }
+.search-wrap input::placeholder { color: var(--muted); }
+
+#nav { flex: 1; overflow-y: auto; padding: 6px 8px 12px; scrollbar-width: thin; }
+.nav-group { margin-bottom: 2px; }
+.nav-group-label {
+  font-size: .62rem; font-weight: 700;
+  letter-spacing: .1em; text-transform: uppercase;
+  color: var(--muted); padding: 8px 8px 3px;
+}
+.nav-item {
+  display: flex; align-items: center; gap: 8px;
+  padding: 7px 8px;
+  border-radius: 6px;
+  font-size: .8rem; font-weight: 500;
+  color: var(--text2);
+  cursor: pointer;
+  transition: background var(--trans), color var(--trans);
+  user-select: none;
+  position: relative;
+}
+.nav-item:hover { background: var(--surface2); color: var(--text); }
+.nav-item.active {
+  background: var(--accent-lt);
+  color: var(--accent);
+}
+.nav-item .ni-icon { font-size: 14px; flex-shrink: 0; width: 18px; text-align: center; }
+.nav-item .ni-label { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.nav-item .ni-count {
+  font-size: .65rem; font-family: var(--font-mono);
+  padding: 1px 5px; border-radius: 20px;
+  background: var(--surface2); color: var(--muted);
+  flex-shrink: 0;
+}
+.nav-item.active .ni-count { background: var(--accent); color: white; }
+
+.sidebar-foot {
+  padding: 10px 12px;
+  border-top: 1px solid var(--border);
+  display: flex; align-items: center; gap: 8px;
+}
+.conn-indicator {
+  width: 7px; height: 7px; border-radius: 50%;
+  background: var(--muted); flex-shrink: 0;
+  transition: background .4s;
+}
+.conn-indicator.ok  { background: var(--accent); box-shadow: 0 0 0 3px var(--accent-lt); }
+.conn-indicator.err { background: var(--red); box-shadow: 0 0 0 3px var(--red-lt); }
+.conn-label { flex: 1; font-size: .72rem; color: var(--muted); }
+#theme-toggle {
+  width: 30px; height: 30px; border-radius: 6px;
+  background: var(--surface2); color: var(--muted); font-size: 14px;
+  display: flex; align-items: center; justify-content: center;
+  transition: background var(--trans), color var(--trans);
+}
+#theme-toggle:hover { background: var(--surface3); color: var(--text); }
+
+/* ── MOBILE SIDEBAR ─────────────────────────────── */
+#sidebar-veil {
+  display: none; position: fixed; inset: 0;
+  background: rgba(0,0,0,.45); z-index: 199;
+}
+
+/* ── MAIN AREA ──────────────────────────────────── */
+#main { flex: 1; display: flex; flex-direction: column; overflow: hidden; min-width: 0; }
+
+/* Topbar */
+#topbar {
+  height: var(--topbar);
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  display: flex; align-items: center;
+  padding: 0 18px; gap: 10px; flex-shrink: 0;
+  transition: background var(--trans);
+}
+#hamburger {
+  display: none; width: 34px; height: 34px; border-radius: 6px;
+  background: var(--surface2); font-size: 17px;
+  align-items: center; justify-content: center;
+  transition: background var(--trans);
+}
+#hamburger:hover { background: var(--surface3); }
+#topbar-title { font-size: 1rem; font-weight: 700; flex: 1; letter-spacing: -.01em; }
+#topbar-actions { display: flex; gap: 6px; align-items: center; }
+
+/* Buttons */
+.btn {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 6px 12px; border-radius: 6px;
+  font-family: var(--font); font-size: .78rem; font-weight: 600;
+  transition: all var(--trans); white-space: nowrap; line-height: 1;
+}
+.btn svg { width: 13px; height: 13px; flex-shrink: 0; }
+.btn-primary { background: var(--accent); color: white; }
+.btn-primary:hover { filter: brightness(1.1); }
+.btn-secondary { background: var(--surface2); color: var(--text2); border: 1px solid var(--border); }
+.btn-secondary:hover { background: var(--surface3); color: var(--text); }
+.btn-ghost { color: var(--muted); padding: 6px 8px; }
+.btn-ghost:hover { background: var(--surface2); color: var(--text); }
+.btn-danger { background: var(--red-lt); color: var(--red); border: 1px solid rgba(181,39,30,.12); }
+.btn-danger:hover { background: var(--red); color: white; }
+.btn-icon { padding: 6px; }
+.btn-sm { padding: 4px 9px; font-size: .73rem; }
+
+/* Scrollable content */
+#content {
+  flex: 1; overflow-y: auto; padding: 22px 24px;
+  scrollbar-width: thin; scrollbar-color: var(--border2) transparent;
+}
+
+/* ── DASHBOARD ──────────────────────────────────── */
+.dash-header {
+  background: var(--accent);
+  border-radius: var(--r-lg);
+  padding: 24px 28px;
+  color: white;
+  margin-bottom: 22px;
+  position: relative; overflow: hidden;
+}
+.dash-header::after {
+  content: '';
+  position: absolute; right: -20px; top: -20px;
+  width: 180px; height: 180px;
+  border-radius: 50%;
+  background: rgba(255,255,255,.07);
+  pointer-events: none;
+}
+.dash-header::before {
+  content: '';
+  position: absolute; right: 60px; bottom: -30px;
+  width: 100px; height: 100px;
+  border-radius: 50%;
+  background: rgba(255,255,255,.04);
+  pointer-events: none;
+}
+.dash-header h2 { font-size: 1.5rem; font-weight: 700; letter-spacing: -.02em; margin-bottom: 5px; }
+.dash-header p { font-size: .82rem; opacity: .75; font-family: var(--font-body); }
+.dash-url {
+  margin-top: 12px; font-family: var(--font-mono); font-size: .7rem;
+  background: rgba(255,255,255,.14); padding: 4px 10px;
+  border-radius: 4px; display: inline-block; opacity: .85;
+}
+.dash-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(158px, 1fr));
+  gap: 10px;
+}
+.dash-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  padding: 14px 14px 12px;
+  cursor: pointer;
+  transition: box-shadow var(--trans), border-color var(--trans), transform .12s var(--ease);
+}
+.dash-card:hover { box-shadow: var(--shadow-md); border-color: var(--border2); transform: translateY(-1px); }
+.dash-card:active { transform: translateY(0); }
+.dc-icon { font-size: 1.25rem; margin-bottom: 8px; }
+.dc-group { font-size: .62rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.dc-count { font-family: 'Syne', sans-serif; font-size: 1.7rem; font-weight: 700; color: var(--text); line-height: 1; margin: 2px 0; }
+.dc-name { font-size: .73rem; color: var(--accent); font-weight: 600; }
+
+/* ── RESOURCE VIEW ──────────────────────────────── */
+.view-head {
+  display: flex; align-items: flex-start; justify-content: space-between;
+  margin-bottom: 16px; gap: 12px; flex-wrap: wrap;
+}
+.view-head-left h1 {
+  font-size: 1.4rem; font-weight: 700; letter-spacing: -.02em;
+  display: flex; align-items: center; gap: 8px;
+}
+.view-head-left p { font-size: .78rem; color: var(--muted); margin-top: 3px; font-family: var(--font-body); }
+.view-toolbar {
+  display: flex; gap: 8px; margin-bottom: 14px; flex-wrap: wrap;
+}
+.view-toolbar input {
+  flex: 1; min-width: 150px;
+  padding: 7px 11px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface);
+  font-size: .8rem;
+  transition: border-color var(--trans);
+}
+.view-toolbar input:focus { outline: none; border-color: var(--accent); }
+.view-toolbar input::placeholder { color: var(--muted); }
+
+/* Table */
+.tbl-wrap {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  overflow: hidden;
+  box-shadow: var(--shadow-sm);
+}
+table { width: 100%; border-collapse: collapse; font-size: .78rem; }
+thead tr { background: var(--surface2); }
+th {
+  text-align: left; padding: 9px 13px;
+  font-size: .65rem; font-weight: 700;
+  letter-spacing: .07em; text-transform: uppercase;
+  color: var(--muted); border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+}
+td {
+  padding: 10px 13px; border-bottom: 1px solid var(--border);
+  vertical-align: middle; color: var(--text);
+  max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+tbody tr { transition: background var(--trans); cursor: pointer; }
+tbody tr:last-child td { border-bottom: none; }
+tbody tr:hover { background: var(--surface2); }
+.row-actions { display: flex; gap: 3px; justify-content: flex-end; white-space: nowrap; }
+.row-actions button { width: 27px; height: 27px; border-radius: 5px; font-size: 13px; display: flex; align-items: center; justify-content: center; }
+.row-actions button:hover { background: var(--surface3); }
+.row-actions .del-btn:hover { background: var(--red-lt); color: var(--red); }
+
+/* Pagination */
+.pager {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 10px 14px; font-size: .75rem; color: var(--muted);
+  flex-wrap: wrap; gap: 6px;
+  border-top: 1px solid var(--border);
+}
+.pager-btns { display: flex; gap: 4px; }
+.pg {
+  padding: 4px 9px; border-radius: 5px; font-size: .75rem;
+  border: 1px solid var(--border); background: var(--surface2);
+  color: var(--text); transition: all var(--trans); font-family: var(--font);
+}
+.pg:hover:not(:disabled) { background: var(--surface3); }
+.pg:disabled { opacity: .35; cursor: not-allowed; }
+.pg.cur { background: var(--accent); color: white; border-color: var(--accent); }
+
+/* Badges */
+.badge {
+  display: inline-flex; align-items: center;
+  padding: 2px 7px; border-radius: 20px;
+  font-size: .65rem; font-weight: 700; white-space: nowrap;
+}
+.b-green  { background: var(--accent-lt);  color: var(--accent); }
+.b-red    { background: var(--red-lt);     color: var(--red); }
+.b-amber  { background: var(--amber-lt);   color: var(--amber); }
+.b-blue   { background: var(--blue-lt);    color: var(--blue); }
+.b-gray   { background: var(--surface3);   color: var(--muted); }
+
+.mono { font-family: var(--font-mono); font-size: .72rem; color: var(--muted); }
+
+/* Empty / loading */
+.state-box {
+  text-align: center; padding: 44px 20px; color: var(--muted);
+}
+.state-box .si { font-size: 2.2rem; margin-bottom: 10px; }
+.state-box h3 { font-size: 1rem; color: var(--text); margin-bottom: 5px; font-family: var(--font-body); font-style: italic; }
+.state-box p { font-size: .8rem; }
+.spin {
+  width: 18px; height: 18px;
+  border: 2px solid var(--border);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin .65s linear infinite;
+  display: inline-block;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ── MODAL ──────────────────────────────────────── */
+#veil {
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,.5);
+  z-index: 800;
+  display: none; align-items: center; justify-content: center;
+  padding: 14px;
+  backdrop-filter: blur(3px);
+}
+#veil.on { display: flex; }
+#modal {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  box-shadow: var(--shadow-xl);
+  width: 100%; max-width: 700px;
+  max-height: 90vh;
+  display: flex; flex-direction: column;
+  animation: mIn .15s var(--ease);
+}
+@keyframes mIn { from { opacity: 0; transform: scale(.96) translateY(6px); } }
+.m-head {
+  padding: 16px 18px 13px;
+  border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; gap: 10px; flex-shrink: 0;
+}
+.m-title { font-size: 1rem; font-weight: 700; flex: 1; letter-spacing: -.01em; }
+#m-close { width: 28px; height: 28px; border-radius: 5px; background: var(--surface2); font-size: 14px; display: flex; align-items: center; justify-content: center; transition: background var(--trans); }
+#m-close:hover { background: var(--surface3); }
+.m-body { flex: 1; overflow-y: auto; padding: 18px; scrollbar-width: thin; }
+.m-foot { padding: 12px 18px; border-top: 1px solid var(--border); display: flex; justify-content: flex-end; gap: 7px; flex-shrink: 0; flex-wrap: wrap; }
+
+/* Tabs */
+.tabs { display: flex; gap: 3px; border-bottom: 1px solid var(--border); margin-bottom: 16px; }
+.tab {
+  padding: 7px 13px; font-size: .78rem; font-weight: 600;
+  color: var(--muted); border-bottom: 2px solid transparent;
+  margin-bottom: -1px; transition: color var(--trans), border-color var(--trans);
+}
+.tab:hover { color: var(--text); }
+.tab.on { color: var(--accent); border-color: var(--accent); }
+
+/* Form */
+.fg { display: grid; gap: 12px; }
+.fg2 { grid-template-columns: 1fr 1fr; }
+.ff { display: flex; flex-direction: column; gap: 4px; }
+.ff label { font-size: .67rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; }
+.ff input, .ff select, .ff textarea {
+  padding: 7px 10px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface2);
+  font-size: .8rem;
+  transition: border-color var(--trans), background var(--trans);
+}
+.ff input:focus, .ff select:focus, .ff textarea:focus {
+  outline: none; border-color: var(--accent); background: var(--surface);
+}
+.ff select option { background: var(--surface); }
+.json-ed {
+  width: 100%;
+  font-family: var(--font-mono); font-size: .74rem; line-height: 1.65;
+  min-height: 240px; resize: vertical;
+  padding: 12px; border: 1px solid var(--border);
+  border-radius: 6px; background: var(--surface2); color: var(--text);
+  transition: border-color var(--trans);
+}
+.json-ed:focus { outline: none; border-color: var(--accent); background: var(--surface); }
+.json-ed.bad { border-color: var(--red); }
+.err-msg { font-size: .73rem; color: var(--red); margin-top: 4px; }
+.section-lbl {
+  font-size: .67rem; font-weight: 700; color: var(--accent);
+  text-transform: uppercase; letter-spacing: .08em;
+  padding-bottom: 5px; border-bottom: 1px solid var(--accent-lt);
+  margin-bottom: 2px;
+}
+
+/* Detail */
+.detail-grid { display: grid; grid-template-columns: 1fr 1fr; }
+.dc {
+  padding: 9px 14px;
+  border-bottom: 1px solid var(--border);
+  font-size: .8rem;
+}
+.dc:nth-child(odd) { border-right: 1px solid var(--border); }
+.dc:nth-last-child(-n+2) { border-bottom: none; }
+.dc-lbl { font-size: .66rem; color: var(--muted); font-weight: 700; margin-bottom: 3px; text-transform: uppercase; letter-spacing: .04em; }
+.dc-val { color: var(--text); }
+
+.json-view {
+  background: var(--surface2); border-radius: 6px;
+  padding: 12px 14px;
+  font-family: var(--font-mono); font-size: .73rem; line-height: 1.7;
+  overflow: auto; max-height: 380px;
+  white-space: pre; color: var(--text);
+}
+
+/* Confirm delete */
+.confirm-box { text-align: center; padding: 12px 0; }
+.confirm-box .ci { font-size: 2.5rem; margin-bottom: 10px; }
+.confirm-box h3 { font-size: 1rem; font-family: var(--font-body); margin-bottom: 6px; }
+.confirm-box p { font-size: .82rem; color: var(--muted); }
+
+/* ── TOAST ──────────────────────────────────────── */
+#toasts {
+  position: fixed; bottom: 18px; right: 18px;
+  display: flex; flex-direction: column; gap: 7px;
+  z-index: 9999; pointer-events: none;
+}
+.toast {
+  display: flex; align-items: center; gap: 9px;
+  padding: 10px 14px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  box-shadow: var(--shadow-lg);
+  font-size: .8rem;
+  min-width: 220px; max-width: 300px;
+  pointer-events: all;
+  animation: tIn .18s var(--ease);
+}
+.toast.ok  { border-left: 3px solid var(--accent); }
+.toast.bad { border-left: 3px solid var(--red); }
+.toast.inf { border-left: 3px solid var(--blue); }
+@keyframes tIn { from { opacity:0; transform:translateX(8px); } }
+
+/* ── RESPONSIVE ─────────────────────────────────── */
+@media (max-width: 768px) {
+  #sidebar {
+    position: fixed; top: 0; left: 0; bottom: 0;
+    transform: translateX(-100%);
+  }
+  #sidebar.open { transform: none; }
+  #sidebar-veil.open { display: block; }
+  #hamburger { display: flex; }
+  #content { padding: 14px 16px; }
+  #topbar { padding: 0 12px; }
+  .fg2 { grid-template-columns: 1fr; }
+  .detail-grid { grid-template-columns: 1fr; }
+  .dc:nth-child(odd) { border-right: none; }
+  .dc:nth-last-child(-n+2) { border-bottom: 1px solid var(--border); }
+  .dc:last-child { border-bottom: none; }
+  .dash-grid { grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); }
+  td, th { padding: 8px 9px; }
+}
+@media (max-width: 500px) {
+  .hide-xs { display: none !important; }
+  #modal { max-height: 96vh; }
+}
+</style>
+</head>
+<body>
+
+<div id="shell">
+  <!-- Sidebar -->
+  <nav id="sidebar">
+    <div class="sidebar-brand">
+      <div class="brand-mark">
+        <div class="brand-hex">R4</div>
+        <div class="brand-text">
+          <div class="brand-title">FHIR Explorer</div>
+          <div class="brand-sub" id="brand-url">connecting…</div>
+        </div>
+      </div>
+    </div>
+    <div class="sidebar-search">
+      <div class="search-wrap">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+        <input id="nav-filter" type="text" placeholder="Filter resources…" />
+      </div>
+    </div>
+    <div id="nav"></div>
+    <div class="sidebar-foot">
+      <div class="conn-indicator" id="conn-dot"></div>
+      <span class="conn-label" id="conn-label">Checking…</span>
+      <button id="theme-toggle" title="Toggle theme">🌙</button>
+    </div>
+  </nav>
+  <div id="sidebar-veil"></div>
+
+  <!-- Main -->
+  <div id="main">
+    <header id="topbar">
+      <button id="hamburger">☰</button>
+      <div id="topbar-title">Dashboard</div>
+      <div id="topbar-actions">
+        <button class="btn btn-secondary btn-sm" id="refresh-btn">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M23 4v6h-6"/><path d="M1 20v-6h6"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/></svg>
+          Refresh
+        </button>
+      </div>
+    </header>
+    <main id="content"></main>
+  </div>
+</div>
+
+<!-- Modal -->
+<div id="veil">
+  <div id="modal">
+    <div class="m-head">
+      <div class="m-title" id="m-title">—</div>
+      <button id="m-close">✕</button>
+    </div>
+    <div class="m-body" id="m-body"></div>
+    <div class="m-foot" id="m-foot"></div>
+  </div>
+</div>
+
+<div id="toasts"></div>
+
+<script>
+'use strict';
+/* ── CONFIG ─────────────────────────────────────── */
+const CFG = { baseUrl: '', apiKey: '' };
+
+/* ── RESOURCES ──────────────────────────────────── */
+const RES = [
+  { name:'Patient',            icon:'👤', group:'Clinical',       cols:['id','name','gender','birthDate','active'],
+    lbl: r => nStr(r.name)||r.id },
+  { name:'Observation',        icon:'📊', group:'Clinical',       cols:['id','status','code','subject','effectiveDateTime'],
+    lbl: r => cTxt(r.code)||r.id },
+  { name:'Condition',          icon:'🩺', group:'Clinical',       cols:['id','code','subject','clinicalStatus','onsetDateTime'],
+    lbl: r => cTxt(r.code)||r.id },
+  { name:'Encounter',          icon:'🏥', group:'Clinical',       cols:['id','status','class','subject','period'],
+    lbl: r => r.id },
+  { name:'AllergyIntolerance', icon:'⚠️', group:'Clinical',       cols:['id','type','criticality','code','patient'],
+    lbl: r => cTxt(r.code)||r.id },
+  { name:'Procedure',          icon:'🔬', group:'Clinical',       cols:['id','status','code','subject','performedDateTime'],
+    lbl: r => cTxt(r.code)||r.id },
+  { name:'MedicationRequest',  icon:'💊', group:'Medications',    cols:['id','status','intent','subject','authoredOn'],
+    lbl: r => r.id },
+  { name:'Medication',         icon:'🧪', group:'Medications',    cols:['id','status','code'],
+    lbl: r => cTxt(r.code)||r.id },
+  { name:'DiagnosticReport',   icon:'📋', group:'Diagnostics',    cols:['id','status','code','subject','issued'],
+    lbl: r => cTxt(r.code)||r.id },
+  { name:'Appointment',        icon:'📅', group:'Scheduling',     cols:['id','status','start','end'],
+    lbl: r => r.id },
+  { name:'Immunization',       icon:'💉', group:'Preventive',     cols:['id','status','vaccineCode','patient','occurrenceDateTime'],
+    lbl: r => cTxt(r.vaccineCode)||r.id },
+  { name:'CarePlan',           icon:'📝', group:'Care Mgmt',      cols:['id','status','intent','title','subject'],
+    lbl: r => r.title||r.id },
+  { name:'Practitioner',       icon:'👨‍⚕️', group:'People',         cols:['id','active','name','gender'],
+    lbl: r => nStr(r.name)||r.id },
+  { name:'Organization',       icon:'🏢', group:'People',         cols:['id','active','name'],
+    lbl: r => r.name||r.id },
+  { name:'Location',           icon:'📍', group:'Infrastructure', cols:['id','status','name'],
+    lbl: r => r.name||r.id },
+];
+
+/* ── STATE ──────────────────────────────────────── */
+const S = {
+  active: null,   // resource name or null = dashboard
+  page: 1,
+  size: 10,
+  q: '',
+  counts: {},
+  theme: localStorage.getItem('fhir-theme') || 'light',
+};
+
+/* ── UTILS ──────────────────────────────────────── */
+function nStr(n) {
+  if (!n) return '';
+  const o = Array.isArray(n) ? n[0] : n;
+  if (!o) return '';
+  return [o.prefix, (Array.isArray(o.given) ? o.given.join(' ') : o.given), o.family].filter(Boolean).join(' ').trim();
+}
+function cTxt(c) {
+  if (!c) return '';
+  if (c.text) return c.text;
+  return (c.coding && c.coding[0] && (c.coding[0].display || c.coding[0].code)) || '';
+}
+function refDisp(r) {
+  if (!r) return '';
+  if (r.display) return r.display;
+  if (r.reference) return r.reference.split('/').pop();
+  return '';
+}
+function fmtD(s) {
+  if (!s) return '';
+  try { return new Date(s).toLocaleDateString('en-US',{year:'numeric',month:'short',day:'numeric'}); } catch { return s; }
+}
+function fmtDT(s) {
+  if (!s) return '';
+  try { return new Date(s).toLocaleString('en-US',{month:'short',day:'numeric',year:'numeric',hour:'2-digit',minute:'2-digit'}); } catch { return s; }
+}
+function badgeCls(v) {
+  const m = {active:'green',final:'green',completed:'green',finished:'green',fulfilled:'green',
+    inactive:'gray',cancelled:'gray',stopped:'gray',unknown:'gray',
+    preliminary:'amber','in-progress':'amber',planned:'amber',booked:'amber',arrived:'amber',
+    'entered-in-error':'red',error:'red',declined:'red',high:'red',
+    low:'blue',moderate:'amber'};
+  return 'b-' + (m[(v||'').toLowerCase()] || 'blue');
+}
+function badge(v) {
+  if (!v && v !== false) return '';
+  const lbl = typeof v === 'boolean' ? (v ? 'active' : 'inactive') : (typeof v === 'object' ? cTxt(v) : String(v));
+  return `<span class="badge ${badgeCls(lbl)}">${lbl}</span>`;
+}
+function cellVal(r, col) {
+  const v = r[col];
+  if (v == null) return '<span class="mono">—</span>';
+  switch(col) {
+    case 'id': return `<span class="mono">${v}</span>`;
+    case 'active': return badge(v);
+    case 'status': case 'clinicalStatus': case 'verificationStatus': case 'criticality': return badge(v);
+    case 'birthDate': case 'onsetDateTime': case 'authoredOn': case 'occurrenceDateTime': return fmtD(v);
+    case 'effectiveDateTime': case 'issued': case 'performedDateTime': case 'start': case 'end': return fmtDT(typeof v === 'string' ? v : '');
+    case 'period': return v.start ? fmtDT(v.start) : '';
+    case 'name': return Array.isArray(v) ? nStr(v) : (typeof v === 'string' ? v : nStr(v));
+    case 'code': case 'vaccineCode': return cTxt(v);
+    case 'subject': case 'patient': case 'performer': return refDisp(Array.isArray(v)?v[0]:v);
+    case 'class': return v.display || v.code || '';
+    case 'type': return Array.isArray(v) ? cTxt(v[0]) : (typeof v === 'string' ? v : '');
+    case 'intent': case 'gender': return typeof v === 'string' ? v : '';
+    default:
+      if (typeof v === 'boolean') return badge(v);
+      if (typeof v === 'object') return '<span class="mono" style="opacity:.5">[obj]</span>';
+      return String(v);
+  }
+}
+function esc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+/* ── API ────────────────────────────────────────── */
+async function api(path, opts={}) {
+  const url = CFG.baseUrl.replace(/\/$/,'') + path;
+  const r = await fetch(url, {
+    ...opts,
+    headers: { 'Content-Type':'application/json', 'x-api-key': CFG.apiKey, ...(opts.headers||{}) }
+  });
+  if (r.status === 204) return null;
+  const d = await r.json().catch(()=>({}));
+  if (!r.ok) throw new Error(d.error || d.issue?.[0]?.diagnostics || `HTTP ${r.status}`);
+  return d;
+}
+const apiList = (res,pg,sz) => api(`/${res}?page=${pg}&count=${sz}`);
+const apiGet  = (res,id)     => api(`/${res}/${id}`);
+const apiPost = (res,b)      => api(`/${res}`,    {method:'POST',   body:JSON.stringify(b)});
+const apiPut  = (res,id,b)   => api(`/${res}/${id}`,{method:'PUT',  body:JSON.stringify(b)});
+const apiDel  = (res,id)     => api(`/${res}/${id}`,{method:'DELETE'});
+
+/* ── TOAST ──────────────────────────────────────── */
+function toast(msg, kind='inf') {
+  const el = document.createElement('div');
+  const icons = {ok:'✅',bad:'❌',inf:'ℹ️'};
+  el.className = `toast ${kind}`;
+  el.innerHTML = `<span>${icons[kind]||''}</span><span>${msg}</span>`;
+  document.getElementById('toasts').appendChild(el);
+  setTimeout(()=>el.remove(), 3400);
+}
+
+/* ── MODAL ──────────────────────────────────────── */
+function openModal(title, body, foot) {
+  document.getElementById('m-title').textContent = title;
+  document.getElementById('m-body').innerHTML = body;
+  document.getElementById('m-foot').innerHTML = foot||'';
+  document.getElementById('veil').classList.add('on');
+}
+function closeModal() { document.getElementById('veil').classList.remove('on'); }
+
+/* ── THEME ──────────────────────────────────────── */
+function setTheme(t) {
+  S.theme = t;
+  document.documentElement.setAttribute('data-theme', t);
+  document.getElementById('theme-toggle').textContent = t==='dark'?'☀️':'🌙';
+  localStorage.setItem('fhir-theme', t);
+}
+
+/* ── NAV ────────────────────────────────────────── */
+function buildNav(filter='') {
+  const groups = {};
+  RES.forEach(r => {
+    if (filter && !r.name.toLowerCase().includes(filter.toLowerCase())) return;
+    (groups[r.group] = groups[r.group]||[]).push(r);
+  });
+  const nav = document.getElementById('nav');
+  nav.innerHTML = '';
+
+  // Dashboard
+  const dashEl = document.createElement('div');
+  dashEl.className = 'nav-group';
+  dashEl.innerHTML = `<div class="nav-item${S.active===null?' active':''}" id="nav-dash">
+    <span class="ni-icon">🏠</span><span class="ni-label">Dashboard</span>
+  </div>`;
+  dashEl.querySelector('#nav-dash').onclick = () => { S.active=null; S.page=1; render(); syncNav(); closeSidebar(); };
+  nav.appendChild(dashEl);
+
+  Object.entries(groups).forEach(([g, items]) => {
+    const grp = document.createElement('div');
+    grp.className = 'nav-group';
+    grp.innerHTML = `<div class="nav-group-label">${g}</div>` +
+      items.map(r => {
+        const cnt = S.counts[r.name];
+        return `<div class="nav-item${S.active===r.name?' active':''}" data-res="${r.name}">
+          <span class="ni-icon">${r.icon}</span>
+          <span class="ni-label">${r.name}</span>
+          ${cnt!=null?`<span class="ni-count">${cnt}</span>`:''}
+        </div>`;
+      }).join('');
+    grp.querySelectorAll('[data-res]').forEach(el => {
+      el.onclick = () => { S.active=el.dataset.res; S.page=1; S.q=''; render(); syncNav(); closeSidebar(); };
+    });
+    nav.appendChild(grp);
+  });
+}
+
+function syncNav() {
+  buildNav(document.getElementById('nav-filter').value);
+  document.getElementById('topbar-title').textContent = S.active || 'Dashboard';
+}
+
+function closeSidebar() {
+  document.getElementById('sidebar').classList.remove('open');
+  document.getElementById('sidebar-veil').classList.remove('open');
+}
+
+/* ── COUNTS ─────────────────────────────────────── */
+async function loadCounts() {
+  await Promise.allSettled(RES.map(async r => {
+    try {
+      const d = await apiList(r.name, 1, 1);
+      S.counts[r.name] = d?.total ?? d?.pagination?.total ?? 0;
+    } catch { S.counts[r.name] = '?'; }
+    // Patch the card count in-place if dashboard is currently visible
+    const el = document.getElementById('dc-count-' + r.name);
+    if (el) el.textContent = S.counts[r.name];
+    syncNav();
+  }));
+}
+
+/* ── DASHBOARD ──────────────────────────────────── */
+function renderDashboard() {
+  const c = document.getElementById('content');
+  let cards = RES.map(r => {
+    const cnt = S.counts[r.name];
+    return `<div class="dash-card" onclick="goTo('${r.name}')">
+      <div class="dc-icon">${r.icon}</div>
+      <div class="dc-group">${r.group}</div>
+      <div class="dc-count" id="dc-count-${r.name}">${cnt!=null ? cnt : '<span class="spin"></span>'}</div>
+      <div class="dc-name">${r.name}</div>
+    </div>`;
+  }).join('');
+
+  c.innerHTML = `
+    <div class="dash-header">
+      <h2>FHIR R4 Explorer</h2>
+      <p>Browse, search, and manage FHIR R4 clinical resources.</p>
+      <div class="dash-url" id="dash-url">${CFG.baseUrl||'Not configured'}</div>
+    </div>
+    <div class="dash-grid">${cards}</div>`;
+}
+
+function goTo(name) { S.active=name; S.page=1; S.q=''; render(); syncNav(); }
+window.goTo = goTo;
+
+/* ── RESOURCE LIST ──────────────────────────────── */
+async function renderList(resName) {
+  const def = RES.find(r=>r.name===resName);
+  const c = document.getElementById('content');
+  c.innerHTML = `
+    <div class="view-head">
+      <div class="view-head-left">
+        <h1>${def.icon} ${resName}</h1>
+        <p>FHIR R4 · ${resName} resources</p>
+      </div>
+      <button class="btn btn-primary btn-sm" id="create-btn">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        New ${resName}
+      </button>
+    </div>
+    <div class="view-toolbar">
+      <input id="tbl-filter" type="text" placeholder="Filter by ID or label…" value="${S.q}" />
+    </div>
+    <div id="tbl-area"><div class="tbl-wrap"><div class="state-box"><span class="spin"></span><p style="margin-top:10px">Loading…</p></div></div></div>`;
+
+  document.getElementById('create-btn').onclick = () => showCreate(resName);
+  document.getElementById('tbl-filter').oninput = e => { S.q=e.target.value; S.page=1; fetchTable(resName, def); };
+
+  await fetchTable(resName, def);
+}
+
+async function fetchTable(resName, def) {
+  const area = document.getElementById('tbl-area');
+  if (!area) return;
+  let data;
+  try { data = await apiList(resName, S.page, S.size); setConn(true); }
+  catch(e) {
+    area.innerHTML = `<div class="tbl-wrap"><div class="state-box"><div class="si">⚠️</div><h3>Failed to load</h3><p>${e.message}</p></div></div>`;
+    setConn(false); return;
+  }
+
+  let entries = (data?.entry||[]).map(e=>e.resource||e);
+  const total = data?.total ?? data?.pagination?.total ?? entries.length;
+  const pg = data?.pagination || {};
+  S.counts[resName] = total; syncNav();
+
+  if (S.q) {
+    const q = S.q.toLowerCase();
+    entries = entries.filter(r => def.lbl(r).toLowerCase().includes(q) || (r.id||'').toLowerCase().includes(q));
+  }
+
+  const hdrs = def.cols.map((c,i) => `<th${i>2?' class="hide-xs"':''}>${c}</th>`).join('') + '<th></th>';
+
+  let rows = '';
+  if (!entries.length) {
+    rows = `<tr><td colspan="${def.cols.length+1}">
+      <div class="state-box"><div class="si">${def.icon}</div><h3>No ${resName} records</h3>
+      <p>${S.q?'Try a different filter.':'Click "New '+resName+'" to add one.'}</p></div></td></tr>`;
+  } else {
+    rows = entries.map(r => {
+      const cells = def.cols.map((c,i) => `<td${i>2?' class="hide-xs"':''}>${cellVal(r,c)}</td>`).join('');
+      return `<tr data-id="${r.id}">
+        ${cells}
+        <td><div class="row-actions">
+          <button title="View"   onclick="showDetail('${resName}','${r.id}',event)">👁</button>
+          <button title="Edit"   onclick="showEdit('${resName}','${r.id}',event)">✏️</button>
+          <button class="del-btn" title="Delete" onclick="confirmDel('${resName}','${r.id}',event)">🗑</button>
+        </div></td></tr>`;
+    }).join('');
+  }
+
+  const totalPages = pg.totalPages || Math.ceil(total/S.size) || 1;
+  area.innerHTML = `
+    <div class="tbl-wrap">
+      <table><thead><tr>${hdrs}</tr></thead><tbody>${rows}</tbody></table>
+      <div class="pager">
+        <span>Showing ${entries.length} of ${total}</span>
+        <div class="pager-btns">
+          <button class="pg" onclick="changePg(-1)" ${S.page<=1?'disabled':''}>‹</button>
+          <button class="pg cur">${S.page} / ${totalPages}</button>
+          <button class="pg" onclick="changePg(1)" ${S.page>=totalPages?'disabled':''}>›</button>
+        </div>
+      </div>
+    </div>`;
+}
+window.changePg = dir => { S.page=Math.max(1,S.page+dir); const d=RES.find(r=>r.name===S.active); if(d) fetchTable(S.active,d); };
+
+/* ── DETAIL MODAL ───────────────────────────────── */
+async function showDetail(resName, id, evt) {
+  if(evt) evt.stopPropagation();
+  const def = RES.find(r=>r.name===resName);
+  openModal(`${def.icon} ${resName} · ${id}`, '<div class="state-box"><span class="spin"></span></div>',
+    `<button class="btn btn-secondary btn-sm" onclick="showEdit('${resName}','${id}')">✏️ Edit</button>
+     <button class="btn btn-danger btn-sm" onclick="confirmDel('${resName}','${id}',null,true)">🗑 Delete</button>
+     <button class="btn btn-ghost btn-sm" onclick="closeModal()">Close</button>`);
+
+  let r; try { r = await apiGet(resName, id); } catch(e) { document.getElementById('m-body').innerHTML=`<div class="state-box"><div class="si">⚠️</div><p>${e.message}</p></div>`; return; }
+
+  const fields = buildFields(r, def);
+  const dCells = fields.map(f=>`<div class="dc"><div class="dc-lbl">${f.k}</div><div class="dc-val">${f.v}</div></div>`).join('');
+
+  document.getElementById('m-body').innerHTML = `
+    <div class="tabs">
+      <button class="tab on" onclick="switchTab(this,'t-sum')">Summary</button>
+      <button class="tab" onclick="switchTab(this,'t-raw')">Raw JSON</button>
+    </div>
+    <div id="t-sum"><div class="detail-grid">${dCells}</div></div>
+    <div id="t-raw" style="display:none"><div class="json-view">${esc(JSON.stringify(r,null,2))}</div></div>`;
+}
+window.showDetail = showDetail;
+
+function buildFields(r, def) {
+  const F = [];
+  const add = (k,v) => F.push({k,v});
+  add('Resource ID', `<span class="mono">${r.id||'—'}</span>`);
+  add('Resource Type', r.resourceType || def.name);
+  if(r.meta?.lastUpdated) add('Last Updated', fmtDT(r.meta.lastUpdated));
+  if(r.meta?.versionId)  add('Version', r.meta.versionId);
+  if(r.name)             add('Name', nStr(r.name) || JSON.stringify(r.name));
+  if(r.gender)           add('Gender', r.gender);
+  if(r.birthDate)        add('Birth Date', fmtD(r.birthDate));
+  if(r.active!=null)     add('Active', badge(r.active));
+  if(r.status)           add('Status', badge(r.status));
+  if(r.clinicalStatus)   add('Clinical Status', badge(cTxt(r.clinicalStatus)));
+  if(r.verificationStatus) add('Verification', badge(cTxt(r.verificationStatus)));
+  if(r.code)             add('Code', cTxt(r.code));
+  if(r.vaccineCode)      add('Vaccine', cTxt(r.vaccineCode));
+  if(r.subject)          add('Subject', refDisp(r.subject));
+  if(r.patient)          add('Patient', refDisp(r.patient));
+  if(r.encounter)        add('Encounter', refDisp(r.encounter));
+  if(r.intent)           add('Intent', r.intent);
+  if(r.criticality)      add('Criticality', badge(r.criticality));
+  if(r.type && typeof r.type === 'string') add('Type', r.type);
+  if(r.title)            add('Title', r.title);
+  if(r.description)      add('Description', r.description);
+  if(r.onsetDateTime)    add('Onset', fmtD(r.onsetDateTime));
+  if(r.authoredOn)       add('Authored On', fmtD(r.authoredOn));
+  if(r.effectiveDateTime) add('Effective', fmtDT(r.effectiveDateTime));
+  if(r.occurrenceDateTime) add('Occurrence', fmtD(r.occurrenceDateTime));
+  if(r.issued)           add('Issued', fmtDT(r.issued));
+  if(r.start)            add('Start', fmtDT(r.start));
+  if(r.end)              add('End', fmtDT(r.end));
+  if(r.period?.start)    add('Period Start', fmtDT(r.period.start));
+  if(r.period?.end)      add('Period End', fmtDT(r.period.end));
+  if(r.valueQuantity)    add('Value', `${r.valueQuantity.value} ${r.valueQuantity.unit||''}`);
+  if(r.conclusion)       add('Conclusion', r.conclusion);
+  if(r.telecom?.[0])     add('Contact', r.telecom[0].value||'');
+  if(r.address) {
+    const a = Array.isArray(r.address)?r.address[0]:r.address;
+    if(a) { const p=[(a.line||[]).join(' '),a.city,a.state,a.postalCode].filter(Boolean); if(p.length) add('Address',p.join(', ')); }
+  }
+  return F;
+}
+
+window.switchTab = (btn, id) => {
+  btn.closest('.tabs').querySelectorAll('.tab').forEach(b=>b.classList.remove('on'));
+  btn.classList.add('on');
+  document.getElementById('m-body').querySelectorAll('[id^="t-"]').forEach(t=>t.style.display='none');
+  document.getElementById(id).style.display='';
+};
+
+/* ══════════════════════════════════════════════════
+   FORM-BASED CRUD
+   Each resource has a FORMS definition: an array of
+   field descriptors used to render <input>/<select>
+   and to serialize/deserialize the FHIR resource.
+   ══════════════════════════════════════════════════ */
+
+/* Field descriptor shape:
+   { id, label, type, path, options?, placeholder?, required?, hint? }
+   type: text | date | datetime-local | number | select | textarea | checkbox
+   path: dot-notation path into the resource object (supports arrays with [0])
+*/
+const FORMS = {
+  Patient: {
+    sections: [
+      { title: 'Identity', fields: [
+        { id:'family',    label:'Last Name',    type:'text',   path:'name[0].family',   required:true },
+        { id:'given',     label:'First Name',   type:'text',   path:'name[0].given[0]', required:true },
+        { id:'gender',    label:'Gender',       type:'select', path:'gender',
+          options:['male','female','other','unknown'] },
+        { id:'birthDate', label:'Date of Birth',type:'date',   path:'birthDate' },
+        { id:'active',    label:'Active',       type:'select', path:'active',
+          options:['true','false'], serialize: v => v==='true' },
+      ]},
+      { title: 'Contact', fields: [
+        { id:'phone',     label:'Phone',        type:'text',   path:'telecom[0].value', placeholder:'555-000-0000' },
+        { id:'email',     label:'Email',        type:'text',   path:'telecom[1].value', placeholder:'name@example.com' },
+      ]},
+      { title: 'Address', fields: [
+        { id:'line',      label:'Street',       type:'text',   path:'address[0].line[0]' },
+        { id:'city',      label:'City',         type:'text',   path:'address[0].city' },
+        { id:'state',     label:'State',        type:'text',   path:'address[0].state' },
+        { id:'zip',       label:'ZIP Code',     type:'text',   path:'address[0].postalCode' },
+        { id:'country',   label:'Country',      type:'text',   path:'address[0].country', placeholder:'US' },
+      ]},
+    ],
+    build(f, existing) {
+      const r = existing ? deepClone(existing) : { resourceType:'Patient', name:[{use:'official',given:['']}], telecom:[{system:'phone',use:'home'},{system:'email'}], address:[{use:'home',line:['']}] };
+      setPath(r,'name[0].family',       f.family);
+      setPath(r,'name[0].given[0]',     f.given);
+      setPath(r,'gender',               f.gender);
+      setPath(r,'birthDate',            f.birthDate);
+      setPath(r,'active',               f.active === 'true');
+      if(f.phone) setPath(r,'telecom[0].value', f.phone);
+      if(f.email) setPath(r,'telecom[1].value', f.email);
+      if(f.line)  setPath(r,'address[0].line[0]', f.line);
+      if(f.city)  setPath(r,'address[0].city',    f.city);
+      if(f.state) setPath(r,'address[0].state',   f.state);
+      if(f.zip)   setPath(r,'address[0].postalCode', f.zip);
+      if(f.country) setPath(r,'address[0].country', f.country);
+      return r;
+    },
+    read(r) {
+      return {
+        family: getPath(r,'name[0].family') || '',
+        given:  getPath(r,'name[0].given[0]') || '',
+        gender: r.gender || 'unknown',
+        birthDate: r.birthDate || '',
+        active: String(r.active !== false),
+        phone:  getPath(r,'telecom[0].value') || '',
+        email:  getPath(r,'telecom[1].value') || '',
+        line:   getPath(r,'address[0].line[0]') || '',
+        city:   getPath(r,'address[0].city') || '',
+        state:  getPath(r,'address[0].state') || '',
+        zip:    getPath(r,'address[0].postalCode') || '',
+        country:getPath(r,'address[0].country') || 'US',
+      };
+    }
+  },
+
+  Observation: {
+    sections: [
+      { title: 'Observation', fields: [
+        { id:'codeText',  label:'Observation Name',    type:'text',   path:'code.text',           required:true, placeholder:'e.g. Blood Pressure' },
+        { id:'loincCode', label:'LOINC Code',          type:'text',   path:'code.coding[0].code', placeholder:'e.g. 85354-9' },
+        { id:'status',    label:'Status',              type:'select', path:'status',
+          options:['registered','preliminary','final','amended','corrected','cancelled','entered-in-error','unknown'] },
+        { id:'category',  label:'Category',            type:'select', path:'_category',
+          options:['vital-signs','laboratory','imaging','procedure','survey','exam','therapy','activity'] },
+        { id:'effective', label:'Effective Date/Time', type:'datetime-local', path:'effectiveDateTime' },
+      ]},
+      { title: 'Subject & Value', fields: [
+        { id:'subject',   label:'Patient Reference',   type:'text',   path:'subject.reference',   placeholder:'Patient/pat-001' },
+        { id:'value',     label:'Value',               type:'number', path:'valueQuantity.value',  placeholder:'0' },
+        { id:'unit',      label:'Unit',                type:'text',   path:'valueQuantity.unit',   placeholder:'mmHg, kg, %…' },
+      ]},
+    ],
+    build(f, existing) {
+      const r = existing ? deepClone(existing) : { resourceType:'Observation', code:{coding:[{system:'http://loinc.org'}]}, valueQuantity:{system:'http://unitsofmeasure.org'}, category:[{coding:[{system:'http://terminology.hl7.org/CodeSystem/observation-category'}]}] };
+      setPath(r,'code.text', f.codeText);
+      setPath(r,'code.coding[0].code', f.loincCode);
+      setPath(r,'code.coding[0].display', f.codeText);
+      setPath(r,'status', f.status);
+      setPath(r,'category[0].coding[0].code', f.category);
+      setPath(r,'category[0].coding[0].display', f.category);
+      if(f.effective) setPath(r,'effectiveDateTime', new Date(f.effective).toISOString());
+      setPath(r,'subject.reference', f.subject);
+      if(f.value !== '') setPath(r,'valueQuantity.value', parseFloat(f.value));
+      setPath(r,'valueQuantity.unit', f.unit);
+      setPath(r,'valueQuantity.code', f.unit);
+      return r;
+    },
+    read(r) {
+      const eff = r.effectiveDateTime ? r.effectiveDateTime.slice(0,16) : '';
+      return {
+        codeText:  getPath(r,'code.text') || getPath(r,'code.coding[0].display') || '',
+        loincCode: getPath(r,'code.coding[0].code') || '',
+        status:    r.status || 'final',
+        category:  getPath(r,'category[0].coding[0].code') || 'vital-signs',
+        effective: eff,
+        subject:   getPath(r,'subject.reference') || '',
+        value:     r.valueQuantity?.value ?? '',
+        unit:      r.valueQuantity?.unit || '',
+      };
+    }
+  },
+
+  Condition: {
+    sections: [
+      { title: 'Condition', fields: [
+        { id:'codeText',    label:'Condition Name',    type:'text',   path:'code.text',           required:true, placeholder:'e.g. Type 2 Diabetes Mellitus' },
+        { id:'snomedCode',  label:'SNOMED CT Code',    type:'text',   path:'code.coding[0].code', placeholder:'e.g. 44054006' },
+        { id:'clinStatus',  label:'Clinical Status',   type:'select', path:'_clinStatus',
+          options:['active','recurrence','relapse','inactive','remission','resolved'] },
+        { id:'verStatus',   label:'Verification',      type:'select', path:'_verStatus',
+          options:['unconfirmed','provisional','differential','confirmed','refuted','entered-in-error'] },
+        { id:'severity',    label:'Severity',          type:'select', path:'_severity',
+          options:['','mild','moderate','severe'] },
+        { id:'subject',     label:'Patient Reference', type:'text',   path:'subject.reference',  placeholder:'Patient/pat-001' },
+        { id:'onset',       label:'Onset Date',        type:'date',   path:'onsetDateTime' },
+        { id:'recorded',    label:'Recorded Date',     type:'date',   path:'recordedDate' },
+        { id:'notes',       label:'Notes',             type:'textarea', path:'_notes' },
+      ]},
+    ],
+    build(f, existing) {
+      const r = existing ? deepClone(existing) : { resourceType:'Condition', code:{coding:[{system:'http://snomed.info/sct'}]}, clinicalStatus:{coding:[{system:'http://terminology.hl7.org/CodeSystem/condition-clinical'}]}, verificationStatus:{coding:[{system:'http://terminology.hl7.org/CodeSystem/condition-ver-status'}]} };
+      setPath(r,'code.text', f.codeText);
+      setPath(r,'code.coding[0].code', f.snomedCode);
+      setPath(r,'code.coding[0].display', f.codeText);
+      setPath(r,'clinicalStatus.coding[0].code', f.clinStatus);
+      setPath(r,'verificationStatus.coding[0].code', f.verStatus);
+      setPath(r,'subject.reference', f.subject);
+      if(f.onset)    setPath(r,'onsetDateTime', f.onset);
+      if(f.recorded) setPath(r,'recordedDate',  f.recorded);
+      if(f.severity) r.severity = {coding:[{system:'http://snomed.info/sct',display:f.severity}],text:f.severity};
+      if(f.notes) r.note = [{text:f.notes}];
+      return r;
+    },
+    read(r) {
+      return {
+        codeText:   getPath(r,'code.text') || getPath(r,'code.coding[0].display') || '',
+        snomedCode: getPath(r,'code.coding[0].code') || '',
+        clinStatus: getPath(r,'clinicalStatus.coding[0].code') || 'active',
+        verStatus:  getPath(r,'verificationStatus.coding[0].code') || 'confirmed',
+        severity:   r.severity?.text || r.severity?.coding?.[0]?.display || '',
+        subject:    getPath(r,'subject.reference') || '',
+        onset:      r.onsetDateTime?.slice(0,10) || '',
+        recorded:   r.recordedDate || '',
+        notes:      r.note?.[0]?.text || '',
+      };
+    }
+  },
+
+  Encounter: {
+    sections: [
+      { title: 'Encounter', fields: [
+        { id:'status',  label:'Status',           type:'select', path:'status',
+          options:['planned','arrived','triaged','in-progress','onleave','finished','cancelled'] },
+        { id:'class',   label:'Class',            type:'select', path:'class.code',
+          options:['AMB','IMP','EMER','HH','OBSENC','PRENC','SS','VR'] },
+        { id:'subject', label:'Patient Reference',type:'text',   path:'subject.reference', placeholder:'Patient/pat-001' },
+        { id:'start',   label:'Start',            type:'datetime-local', path:'period.start' },
+        { id:'end',     label:'End',              type:'datetime-local', path:'period.end' },
+        { id:'reason',  label:'Reason',           type:'text',   path:'_reason', placeholder:'e.g. Annual checkup' },
+        { id:'provider',label:'Service Provider', type:'text',   path:'serviceProvider.reference', placeholder:'Organization/org-001' },
+      ]},
+    ],
+    build(f, existing) {
+      const classLabels = {AMB:'ambulatory',IMP:'inpatient encounter',EMER:'emergency',HH:'home health',OBSENC:'observation encounter',PRENC:'pre-admission',SS:'short stay',VR:'virtual'};
+      const r = existing ? deepClone(existing) : { resourceType:'Encounter', class:{system:'http://terminology.hl7.org/CodeSystem/v3-ActCode'}, period:{} };
+      setPath(r,'status', f.status);
+      setPath(r,'class.code', f.class);
+      setPath(r,'class.display', classLabels[f.class] || f.class);
+      setPath(r,'subject.reference', f.subject);
+      if(f.start) setPath(r,'period.start', new Date(f.start).toISOString());
+      if(f.end)   setPath(r,'period.end',   new Date(f.end).toISOString());
+      if(f.reason) r.reasonCode = [{coding:[{display:f.reason}],text:f.reason}];
+      if(f.provider) setPath(r,'serviceProvider.reference', f.provider);
+      return r;
+    },
+    read(r) {
+      return {
+        status:   r.status || 'planned',
+        class:    r.class?.code || 'AMB',
+        subject:  getPath(r,'subject.reference') || '',
+        start:    r.period?.start?.slice(0,16) || '',
+        end:      r.period?.end?.slice(0,16)   || '',
+        reason:   r.reasonCode?.[0]?.text || r.reasonCode?.[0]?.coding?.[0]?.display || '',
+        provider: getPath(r,'serviceProvider.reference') || '',
+      };
+    }
+  },
+
+  Medication: {
+    sections: [
+      { title: 'Medication', fields: [
+        { id:'name',    label:'Medication Name', type:'text',   path:'code.text',           required:true, placeholder:'e.g. Metformin 500mg Tablet' },
+        { id:'rxnorm',  label:'RxNorm Code',     type:'text',   path:'code.coding[0].code', placeholder:'e.g. 860975' },
+        { id:'status',  label:'Status',          type:'select', path:'status',
+          options:['active','inactive','entered-in-error'] },
+        { id:'form',    label:'Dose Form',       type:'select', path:'_form',
+          options:['Tablet','Capsule','Solution','Suspension','Injection','Patch','Inhaler','Cream','Drops','Suppository'] },
+        { id:'strength',label:'Strength',        type:'text',   path:'_strength', placeholder:'e.g. 500 mg' },
+      ]},
+    ],
+    build(f, existing) {
+      const formCodes = {Tablet:'385055001',Capsule:'385049006',Solution:'77899000',Suspension:'47625008',Injection:'385219001',Patch:'36532005',Inhaler:'385287007',Cream:'385099005',Drops:'385032004',Suppository:'385194003'};
+      const r = existing ? deepClone(existing) : { resourceType:'Medication', code:{coding:[{system:'http://www.nlm.nih.gov/research/umls/rxnorm'}]} };
+      setPath(r,'code.text', f.name);
+      setPath(r,'code.coding[0].code', f.rxnorm);
+      setPath(r,'code.coding[0].display', f.name);
+      setPath(r,'status', f.status);
+      if(f.form) r.form = {coding:[{system:'http://snomed.info/sct',code:formCodes[f.form]||'',display:f.form}]};
+      if(f.strength) r.amount = {numerator:{value:parseFloat(f.strength)||0,unit:f.strength},denominator:{value:1,unit:f.form||'unit'}};
+      return r;
+    },
+    read(r) {
+      return {
+        name:     getPath(r,'code.text') || getPath(r,'code.coding[0].display') || '',
+        rxnorm:   getPath(r,'code.coding[0].code') || '',
+        status:   r.status || 'active',
+        form:     r.form?.coding?.[0]?.display || r.form?.text || 'Tablet',
+        strength: r.amount?.numerator?.unit || '',
+      };
+    }
+  },
+
+  MedicationRequest: {
+    sections: [
+      { title: 'Prescription', fields: [
+        { id:'status',    label:'Status',              type:'select', path:'status',
+          options:['active','on-hold','cancelled','completed','entered-in-error','stopped','draft','unknown'] },
+        { id:'intent',    label:'Intent',              type:'select', path:'intent',
+          options:['proposal','plan','order','original-order','reflex-order','filler-order','instance-order','option'] },
+        { id:'medRef',    label:'Medication Reference',type:'text',   path:'medicationReference.reference', placeholder:'Medication/med-001' },
+        { id:'patient',   label:'Patient Reference',   type:'text',   path:'subject.reference',             placeholder:'Patient/pat-001' },
+        { id:'authored',  label:'Authored On',         type:'date',   path:'authoredOn' },
+        { id:'requester', label:'Requester',           type:'text',   path:'requester.reference',           placeholder:'Practitioner/prac-001' },
+        { id:'dosage',    label:'Dosage Instructions', type:'textarea',path:'_dosage',                      placeholder:'e.g. Take 1 tablet by mouth twice daily with meals' },
+        { id:'quantity',  label:'Dispense Quantity',   type:'number', path:'dispenseRequest.quantity.value', placeholder:'30' },
+        { id:'refills',   label:'Refills Allowed',     type:'number', path:'dispenseRequest.numberOfRepeatsAllowed', placeholder:'0' },
+      ]},
+    ],
+    build(f, existing) {
+      const r = existing ? deepClone(existing) : { resourceType:'MedicationRequest', dosageInstruction:[{text:''}], dispenseRequest:{quantity:{unit:'tablet'}} };
+      setPath(r,'status', f.status);
+      setPath(r,'intent', f.intent);
+      setPath(r,'medicationReference.reference', f.medRef);
+      setPath(r,'subject.reference', f.patient);
+      if(f.authored) setPath(r,'authoredOn', f.authored);
+      if(f.requester) setPath(r,'requester.reference', f.requester);
+      if(f.dosage) r.dosageInstruction = [{text:f.dosage}];
+      if(f.quantity) setPath(r,'dispenseRequest.quantity.value', parseFloat(f.quantity));
+      if(f.refills)  setPath(r,'dispenseRequest.numberOfRepeatsAllowed', parseInt(f.refills));
+      return r;
+    },
+    read(r) {
+      return {
+        status:   r.status || 'active',
+        intent:   r.intent || 'order',
+        medRef:   getPath(r,'medicationReference.reference') || '',
+        patient:  getPath(r,'subject.reference') || '',
+        authored: r.authoredOn || '',
+        requester:getPath(r,'requester.reference') || '',
+        dosage:   r.dosageInstruction?.[0]?.text || '',
+        quantity: getPath(r,'dispenseRequest.quantity.value') ?? '',
+        refills:  r.dispenseRequest?.numberOfRepeatsAllowed ?? '',
+      };
+    }
+  },
+
+  AllergyIntolerance: {
+    sections: [
+      { title: 'Allergy / Intolerance', fields: [
+        { id:'substance', label:'Substance',         type:'text',   path:'code.text', required:true, placeholder:'e.g. Penicillin, Peanuts' },
+        { id:'type',      label:'Type',              type:'select', path:'type',      options:['allergy','intolerance'] },
+        { id:'category',  label:'Category',          type:'select', path:'_category', options:['food','medication','environment','biologic'] },
+        { id:'criticality',label:'Criticality',     type:'select', path:'criticality',options:['low','high','unable-to-assess'] },
+        { id:'clinStatus',label:'Clinical Status',   type:'select', path:'_clinStatus',options:['active','inactive','resolved'] },
+        { id:'patient',   label:'Patient Reference', type:'text',   path:'patient.reference', placeholder:'Patient/pat-001' },
+        { id:'onset',     label:'Onset Date',        type:'date',   path:'onsetDateTime' },
+        { id:'reaction',  label:'Reaction / Symptoms',type:'textarea',path:'_reaction', placeholder:'e.g. Anaphylaxis, urticaria' },
+        { id:'severity',  label:'Reaction Severity', type:'select', path:'_severity', options:['','mild','moderate','severe'] },
+      ]},
+    ],
+    build(f, existing) {
+      const r = existing ? deepClone(existing) : { resourceType:'AllergyIntolerance', clinicalStatus:{coding:[{system:'http://terminology.hl7.org/CodeSystem/allergyintolerance-clinical'}]}, verificationStatus:{coding:[{system:'http://terminology.hl7.org/CodeSystem/allergyintolerance-verification',code:'confirmed'}]}, code:{} };
+      setPath(r,'code.text', f.substance);
+      setPath(r,'type', f.type);
+      r.category = [f.category];
+      setPath(r,'criticality', f.criticality);
+      setPath(r,'clinicalStatus.coding[0].code', f.clinStatus);
+      setPath(r,'patient.reference', f.patient);
+      if(f.onset) setPath(r,'onsetDateTime', f.onset);
+      if(f.reaction) r.reaction = [{manifestation:[{coding:[{display:f.reaction}],text:f.reaction}], severity:f.severity||undefined}];
+      return r;
+    },
+    read(r) {
+      return {
+        substance: getPath(r,'code.text') || getPath(r,'code.coding[0].display') || '',
+        type:      r.type || 'allergy',
+        category:  r.category?.[0] || 'medication',
+        criticality:r.criticality || 'low',
+        clinStatus:getPath(r,'clinicalStatus.coding[0].code') || 'active',
+        patient:   getPath(r,'patient.reference') || '',
+        onset:     r.onsetDateTime?.slice(0,10) || '',
+        reaction:  r.reaction?.[0]?.manifestation?.[0]?.text || r.reaction?.[0]?.manifestation?.[0]?.coding?.[0]?.display || '',
+        severity:  r.reaction?.[0]?.severity || '',
+      };
+    }
+  },
+
+  Procedure: {
+    sections: [
+      { title: 'Procedure', fields: [
+        { id:'name',     label:'Procedure Name',    type:'text',   path:'code.text',           required:true, placeholder:'e.g. Appendectomy' },
+        { id:'snomed',   label:'SNOMED CT Code',    type:'text',   path:'code.coding[0].code', placeholder:'e.g. 80146002' },
+        { id:'status',   label:'Status',            type:'select', path:'status',
+          options:['preparation','in-progress','not-done','on-hold','stopped','completed','entered-in-error','unknown'] },
+        { id:'subject',  label:'Patient Reference', type:'text',   path:'subject.reference',   placeholder:'Patient/pat-001' },
+        { id:'encounter',label:'Encounter Reference',type:'text',  path:'encounter.reference',  placeholder:'Encounter/enc-001' },
+        { id:'performed',label:'Performed Date/Time',type:'datetime-local', path:'performedDateTime' },
+        { id:'performer',label:'Performer',         type:'text',   path:'performer[0].actor.reference', placeholder:'Practitioner/prac-001' },
+        { id:'notes',    label:'Notes',             type:'textarea',path:'_notes' },
+      ]},
+    ],
+    build(f, existing) {
+      const r = existing ? deepClone(existing) : { resourceType:'Procedure', code:{coding:[{system:'http://snomed.info/sct'}]} };
+      setPath(r,'code.text', f.name);
+      setPath(r,'code.coding[0].code', f.snomed);
+      setPath(r,'code.coding[0].display', f.name);
+      setPath(r,'status', f.status);
+      setPath(r,'subject.reference', f.subject);
+      if(f.encounter) setPath(r,'encounter.reference', f.encounter);
+      if(f.performed) setPath(r,'performedDateTime', new Date(f.performed).toISOString());
+      if(f.performer) r.performer = [{actor:{reference:f.performer}}];
+      if(f.notes) r.note = [{text:f.notes}];
+      return r;
+    },
+    read(r) {
+      return {
+        name:      getPath(r,'code.text') || getPath(r,'code.coding[0].display') || '',
+        snomed:    getPath(r,'code.coding[0].code') || '',
+        status:    r.status || 'completed',
+        subject:   getPath(r,'subject.reference') || '',
+        encounter: getPath(r,'encounter.reference') || '',
+        performed: r.performedDateTime?.slice(0,16) || '',
+        performer: r.performer?.[0]?.actor?.reference || '',
+        notes:     r.note?.[0]?.text || '',
+      };
+    }
+  },
+
+  DiagnosticReport: {
+    sections: [
+      { title: 'Report', fields: [
+        { id:'name',     label:'Report Name',       type:'text',   path:'code.text',           required:true, placeholder:'e.g. CBC Panel' },
+        { id:'loincCode',label:'LOINC Code',         type:'text',   path:'code.coding[0].code', placeholder:'e.g. 58410-2' },
+        { id:'status',   label:'Status',            type:'select', path:'status',
+          options:['registered','partial','preliminary','final','amended','corrected','appended','cancelled','entered-in-error','unknown'] },
+        { id:'category', label:'Category',          type:'select', path:'_category',
+          options:['LAB','RAD','PAT','CG','GE','IMM','MB','MCB','MYC','NMR','NMS','NRS','OB','OUS','PF','PHR','PT','RX','SP','SR','TX','URN','VR','OTH'] },
+        { id:'subject',  label:'Patient Reference', type:'text',   path:'subject.reference',   placeholder:'Patient/pat-001' },
+        { id:'effective',label:'Effective Date',    type:'date',   path:'effectiveDateTime' },
+        { id:'issued',   label:'Issued Date',       type:'date',   path:'issued' },
+        { id:'conclusion',label:'Conclusion',       type:'textarea',path:'conclusion' },
+      ]},
+    ],
+    build(f, existing) {
+      const r = existing ? deepClone(existing) : { resourceType:'DiagnosticReport', code:{coding:[{system:'http://loinc.org'}]}, category:[{coding:[{system:'http://terminology.hl7.org/CodeSystem/v2-0074'}]}] };
+      setPath(r,'code.text', f.name);
+      setPath(r,'code.coding[0].code', f.loincCode);
+      setPath(r,'code.coding[0].display', f.name);
+      setPath(r,'status', f.status);
+      setPath(r,'category[0].coding[0].code', f.category);
+      setPath(r,'subject.reference', f.subject);
+      if(f.effective) setPath(r,'effectiveDateTime', f.effective);
+      if(f.issued)    setPath(r,'issued', f.issued);
+      if(f.conclusion) setPath(r,'conclusion', f.conclusion);
+      return r;
+    },
+    read(r) {
+      return {
+        name:      getPath(r,'code.text') || getPath(r,'code.coding[0].display') || '',
+        loincCode: getPath(r,'code.coding[0].code') || '',
+        status:    r.status || 'final',
+        category:  getPath(r,'category[0].coding[0].code') || 'LAB',
+        subject:   getPath(r,'subject.reference') || '',
+        effective: r.effectiveDateTime?.slice(0,10) || '',
+        issued:    r.issued?.slice(0,10) || '',
+        conclusion:r.conclusion || '',
+      };
+    }
+  },
+
+  Appointment: {
+    sections: [
+      { title: 'Appointment', fields: [
+        { id:'status',  label:'Status',              type:'select', path:'status',
+          options:['proposed','pending','booked','arrived','fulfilled','cancelled','noshow','entered-in-error','checked-in','waitlist'] },
+        { id:'start',   label:'Start Date/Time',     type:'datetime-local', path:'start', required:true },
+        { id:'end',     label:'End Date/Time',       type:'datetime-local', path:'end' },
+        { id:'patient', label:'Patient Reference',   type:'text',   path:'_patient', placeholder:'Patient/pat-001' },
+        { id:'practitioner',label:'Practitioner',   type:'text',   path:'_practitioner', placeholder:'Practitioner/prac-001' },
+        { id:'reason',  label:'Reason',              type:'text',   path:'_reason', placeholder:'e.g. Annual wellness visit' },
+        { id:'comment', label:'Comment / Notes',     type:'textarea', path:'comment' },
+      ]},
+    ],
+    build(f, existing) {
+      const r = existing ? deepClone(existing) : { resourceType:'Appointment', participant:[] };
+      setPath(r,'status', f.status);
+      if(f.start) setPath(r,'start', new Date(f.start).toISOString());
+      if(f.end)   setPath(r,'end',   new Date(f.end).toISOString());
+      if(f.comment) setPath(r,'comment', f.comment);
+      if(f.reason) r.reasonCode = [{text:f.reason}];
+      // Build participants
+      const parts = [];
+      if(f.patient)      parts.push({actor:{reference:f.patient},required:'required',status:'accepted'});
+      if(f.practitioner) parts.push({actor:{reference:f.practitioner},required:'required',status:'accepted'});
+      if(parts.length) r.participant = parts;
+      return r;
+    },
+    read(r) {
+      const patPart  = r.participant?.find(p => p.actor?.reference?.startsWith('Patient/'));
+      const pracPart = r.participant?.find(p => p.actor?.reference?.startsWith('Practitioner/'));
+      return {
+        status: r.status || 'proposed',
+        start:  r.start?.slice(0,16) || '',
+        end:    r.end?.slice(0,16)   || '',
+        patient:     patPart?.actor?.reference  || '',
+        practitioner:pracPart?.actor?.reference || '',
+        reason:  r.reasonCode?.[0]?.text || '',
+        comment: r.comment || '',
+      };
+    }
+  },
+
+  Immunization: {
+    sections: [
+      { title: 'Vaccine', fields: [
+        { id:'vaccineName', label:'Vaccine Name',       type:'text',   path:'vaccineCode.text',           required:true, placeholder:'e.g. Flu Shot' },
+        { id:'cvxCode',     label:'CVX Code',           type:'text',   path:'vaccineCode.coding[0].code', placeholder:'e.g. 141' },
+        { id:'status',      label:'Status',             type:'select', path:'status',
+          options:['completed','entered-in-error','not-done'] },
+        { id:'patient',     label:'Patient Reference',  type:'text',   path:'patient.reference', placeholder:'Patient/pat-001' },
+        { id:'occurrence',  label:'Date Given',         type:'date',   path:'occurrenceDateTime' },
+        { id:'lotNumber',   label:'Lot Number',         type:'text',   path:'lotNumber' },
+        { id:'expiry',      label:'Expiry Date',        type:'date',   path:'expirationDate' },
+        { id:'site',        label:'Injection Site',     type:'select', path:'_site',
+          options:['','Left arm','Right arm','Left thigh','Right thigh','Intranasal'] },
+        { id:'route',       label:'Route',              type:'select', path:'_route',
+          options:['','Intramuscular','Subcutaneous','Intranasal','Oral','Intradermal'] },
+      ]},
+    ],
+    build(f, existing) {
+      const siteCodes = {'Left arm':'LA','Right arm':'RA','Left thigh':'LT','Right thigh':'RT','Intranasal':'NS'};
+      const routeCodes = {Intramuscular:'IM',Subcutaneous:'SQINJ',Intranasal:'NASINHL',Oral:'PO',Intradermal:'IDINJ'};
+      const r = existing ? deepClone(existing) : { resourceType:'Immunization', vaccineCode:{coding:[{system:'http://hl7.org/fhir/sid/cvx'}]} };
+      setPath(r,'vaccineCode.text', f.vaccineName);
+      setPath(r,'vaccineCode.coding[0].code', f.cvxCode);
+      setPath(r,'vaccineCode.coding[0].display', f.vaccineName);
+      setPath(r,'status', f.status);
+      setPath(r,'patient.reference', f.patient);
+      if(f.occurrence) setPath(r,'occurrenceDateTime', f.occurrence);
+      if(f.lotNumber)  setPath(r,'lotNumber', f.lotNumber);
+      if(f.expiry)     setPath(r,'expirationDate', f.expiry);
+      if(f.site)  r.site  = {coding:[{system:'http://terminology.hl7.org/CodeSystem/v3-ActSite',code:siteCodes[f.site]||f.site,display:f.site}]};
+      if(f.route) r.route = {coding:[{system:'http://terminology.hl7.org/CodeSystem/v3-RouteOfAdministration',code:routeCodes[f.route]||f.route,display:f.route}]};
+      r.primarySource = true;
+      return r;
+    },
+    read(r) {
+      return {
+        vaccineName: getPath(r,'vaccineCode.text') || getPath(r,'vaccineCode.coding[0].display') || '',
+        cvxCode:     getPath(r,'vaccineCode.coding[0].code') || '',
+        status:      r.status || 'completed',
+        patient:     getPath(r,'patient.reference') || '',
+        occurrence:  r.occurrenceDateTime?.slice(0,10) || '',
+        lotNumber:   r.lotNumber || '',
+        expiry:      r.expirationDate || '',
+        site:        r.site?.coding?.[0]?.display || r.site?.text || '',
+        route:       r.route?.coding?.[0]?.display || r.route?.text || '',
+      };
+    }
+  },
+
+  CarePlan: {
+    sections: [
+      { title: 'Care Plan', fields: [
+        { id:'title',    label:'Title',             type:'text',    path:'title',    required:true },
+        { id:'status',   label:'Status',            type:'select',  path:'status',
+          options:['draft','active','on-hold','revoked','completed','entered-in-error','unknown'] },
+        { id:'intent',   label:'Intent',            type:'select',  path:'intent',
+          options:['proposal','plan','order','option'] },
+        { id:'subject',  label:'Patient Reference', type:'text',    path:'subject.reference', placeholder:'Patient/pat-001' },
+        { id:'start',    label:'Period Start',      type:'date',    path:'period.start' },
+        { id:'end',      label:'Period End',        type:'date',    path:'period.end' },
+        { id:'author',   label:'Author',            type:'text',    path:'author.reference', placeholder:'Practitioner/prac-001' },
+        { id:'description',label:'Description',    type:'textarea', path:'description' },
+        { id:'goal',     label:'Goals',             type:'textarea', path:'_goals', placeholder:'One goal per line' },
+      ]},
+    ],
+    build(f, existing) {
+      const r = existing ? deepClone(existing) : { resourceType:'CarePlan', period:{} };
+      setPath(r,'title', f.title);
+      setPath(r,'status', f.status);
+      setPath(r,'intent', f.intent);
+      setPath(r,'subject.reference', f.subject);
+      if(f.start) setPath(r,'period.start', f.start);
+      if(f.end)   setPath(r,'period.end',   f.end);
+      if(f.author) setPath(r,'author.reference', f.author);
+      if(f.description) setPath(r,'description', f.description);
+      if(f.goal) r.goal = f.goal.split('\n').filter(Boolean).map(g => ({display:g.trim()}));
+      return r;
+    },
+    read(r) {
+      return {
+        title:    r.title || '',
+        status:   r.status || 'active',
+        intent:   r.intent || 'plan',
+        subject:  getPath(r,'subject.reference') || '',
+        start:    r.period?.start?.slice(0,10) || '',
+        end:      r.period?.end?.slice(0,10)   || '',
+        author:   getPath(r,'author.reference') || '',
+        description: r.description || '',
+        goal:     (r.goal||[]).map(g=>g.display||'').filter(Boolean).join('\n'),
+      };
+    }
+  },
+
+  Practitioner: {
+    sections: [
+      { title: 'Practitioner', fields: [
+        { id:'family',  label:'Last Name',    type:'text',   path:'name[0].family', required:true },
+        { id:'given',   label:'First Name',   type:'text',   path:'name[0].given[0]' },
+        { id:'prefix',  label:'Title',        type:'text',   path:'name[0].prefix[0]', placeholder:'Dr., NP, PA…' },
+        { id:'gender',  label:'Gender',       type:'select', path:'gender', options:['male','female','other','unknown'] },
+        { id:'active',  label:'Active',       type:'select', path:'active', options:['true','false'] },
+        { id:'npi',     label:'NPI Number',   type:'text',   path:'identifier[0].value', placeholder:'10-digit NPI' },
+        { id:'phone',   label:'Phone',        type:'text',   path:'telecom[0].value' },
+        { id:'email',   label:'Email',        type:'text',   path:'telecom[1].value' },
+        { id:'qualification',label:'Qualification',type:'text',path:'_qual', placeholder:'MD, DO, NP, RN…' },
+      ]},
+    ],
+    build(f, existing) {
+      const qualCodes = {MD:'MD',DO:'DO',NP:'NP',RN:'RN',PA:'PA',PharmD:'PharmD'};
+      const r = existing ? deepClone(existing) : { resourceType:'Practitioner', name:[{use:'official',given:['']}], telecom:[{system:'phone',use:'work'},{system:'email',use:'work'}], identifier:[{system:'http://hl7.org/fhir/sid/us-npi'}] };
+      setPath(r,'name[0].family', f.family);
+      setPath(r,'name[0].given[0]', f.given);
+      if(f.prefix) setPath(r,'name[0].prefix[0]', f.prefix);
+      setPath(r,'gender', f.gender);
+      setPath(r,'active', f.active === 'true');
+      if(f.npi) setPath(r,'identifier[0].value', f.npi);
+      if(f.phone) setPath(r,'telecom[0].value', f.phone);
+      if(f.email) setPath(r,'telecom[1].value', f.email);
+      if(f.qualification) r.qualification = [{code:{coding:[{system:'http://terminology.hl7.org/CodeSystem/v2-0360',code:f.qualification,display:f.qualification}]}}];
+      return r;
+    },
+    read(r) {
+      return {
+        family: getPath(r,'name[0].family') || '',
+        given:  getPath(r,'name[0].given[0]') || '',
+        prefix: getPath(r,'name[0].prefix[0]') || '',
+        gender: r.gender || 'unknown',
+        active: String(r.active !== false),
+        npi:    getPath(r,'identifier[0].value') || '',
+        phone:  getPath(r,'telecom[0].value') || '',
+        email:  getPath(r,'telecom[1].value') || '',
+        qualification: r.qualification?.[0]?.code?.coding?.[0]?.code || r.qualification?.[0]?.code?.text || '',
+      };
+    }
+  },
+
+  Organization: {
+    sections: [
+      { title: 'Organization', fields: [
+        { id:'name',   label:'Organization Name', type:'text',   path:'name',   required:true },
+        { id:'type',   label:'Type',              type:'select', path:'_type',
+          options:['Healthcare Provider','Hospital Department','Clinical Research Sponsor','Organizational team','Insurance Company','Government','Educational Institution','Other'] },
+        { id:'active', label:'Active',            type:'select', path:'active', options:['true','false'] },
+        { id:'npi',    label:'NPI Number',        type:'text',   path:'identifier[0].value' },
+        { id:'phone',  label:'Phone',             type:'text',   path:'telecom[0].value' },
+        { id:'line',   label:'Street Address',    type:'text',   path:'address[0].line[0]' },
+        { id:'city',   label:'City',              type:'text',   path:'address[0].city' },
+        { id:'state',  label:'State',             type:'text',   path:'address[0].state' },
+        { id:'zip',    label:'ZIP Code',          type:'text',   path:'address[0].postalCode' },
+      ]},
+    ],
+    build(f, existing) {
+      const typeCodes = {'Healthcare Provider':'prov','Hospital Department':'dept','Insurance Company':'ins','Government':'govt','Educational Institution':'edu','Other':'other'};
+      const r = existing ? deepClone(existing) : { resourceType:'Organization', type:[{coding:[{system:'http://terminology.hl7.org/CodeSystem/organization-type'}]}], telecom:[{system:'phone'}], address:[{use:'work',line:['']}], identifier:[{system:'http://hl7.org/fhir/sid/us-npi'}] };
+      setPath(r,'name', f.name);
+      setPath(r,'active', f.active === 'true');
+      if(f.type) { setPath(r,'type[0].coding[0].code', typeCodes[f.type]||'other'); setPath(r,'type[0].coding[0].display', f.type); }
+      if(f.npi)   setPath(r,'identifier[0].value', f.npi);
+      if(f.phone) setPath(r,'telecom[0].value', f.phone);
+      if(f.line)  setPath(r,'address[0].line[0]', f.line);
+      if(f.city)  setPath(r,'address[0].city', f.city);
+      if(f.state) setPath(r,'address[0].state', f.state);
+      if(f.zip)   setPath(r,'address[0].postalCode', f.zip);
+      return r;
+    },
+    read(r) {
+      return {
+        name:   r.name || '',
+        type:   r.type?.[0]?.coding?.[0]?.display || r.type?.[0]?.text || 'Healthcare Provider',
+        active: String(r.active !== false),
+        npi:    getPath(r,'identifier[0].value') || '',
+        phone:  getPath(r,'telecom[0].value') || '',
+        line:   getPath(r,'address[0].line[0]') || '',
+        city:   getPath(r,'address[0].city') || '',
+        state:  getPath(r,'address[0].state') || '',
+        zip:    getPath(r,'address[0].postalCode') || '',
+      };
+    }
+  },
+
+  Location: {
+    sections: [
+      { title: 'Location', fields: [
+        { id:'name',   label:'Location Name',     type:'text',   path:'name',   required:true },
+        { id:'status', label:'Status',            type:'select', path:'status', options:['active','suspended','inactive'] },
+        { id:'type',   label:'Type',              type:'select', path:'_type',
+          options:['Hospital','Outpatient Facility','Pharmacy','Laboratory','Radiology','Emergency','ICU','OR','Clinic','Other'] },
+        { id:'org',    label:'Managing Organization',type:'text',path:'managingOrganization.reference', placeholder:'Organization/org-001' },
+        { id:'phone',  label:'Phone',             type:'text',   path:'telecom[0].value' },
+        { id:'line',   label:'Street Address',    type:'text',   path:'address.line[0]' },
+        { id:'city',   label:'City',              type:'text',   path:'address.city' },
+        { id:'state',  label:'State',             type:'text',   path:'address.state' },
+        { id:'zip',    label:'ZIP Code',          type:'text',   path:'address.postalCode' },
+      ]},
+    ],
+    build(f, existing) {
+      const typeCodes = {Hospital:'HOSP','Outpatient Facility':'OF',Pharmacy:'PHARM',Laboratory:'LAB',Radiology:'RADDX',Emergency:'ER',ICU:'ICU',OR:'OR',Clinic:'PC',Other:'OTHER'};
+      const r = existing ? deepClone(existing) : { resourceType:'Location', type:[{coding:[{system:'http://terminology.hl7.org/CodeSystem/v3-RoleCode'}]}], telecom:[{system:'phone'}], address:{use:'work',line:['']} };
+      setPath(r,'name', f.name);
+      setPath(r,'status', f.status);
+      if(f.type) { setPath(r,'type[0].coding[0].code', typeCodes[f.type]||f.type); setPath(r,'type[0].coding[0].display', f.type); }
+      if(f.org)   setPath(r,'managingOrganization.reference', f.org);
+      if(f.phone) setPath(r,'telecom[0].value', f.phone);
+      if(f.line)  setPath(r,'address.line[0]', f.line);
+      if(f.city)  setPath(r,'address.city', f.city);
+      if(f.state) setPath(r,'address.state', f.state);
+      if(f.zip)   setPath(r,'address.postalCode', f.zip);
+      return r;
+    },
+    read(r) {
+      const addr = Array.isArray(r.address) ? r.address[0] : r.address;
+      return {
+        name:   r.name || '',
+        status: r.status || 'active',
+        type:   r.type?.[0]?.coding?.[0]?.display || r.type?.[0]?.text || 'Hospital',
+        org:    getPath(r,'managingOrganization.reference') || '',
+        phone:  getPath(r,'telecom[0].value') || '',
+        line:   addr?.line?.[0] || '',
+        city:   addr?.city || '',
+        state:  addr?.state || '',
+        zip:    addr?.postalCode || '',
+      };
+    }
+  },
+};
+
+/* ── PATH HELPERS ───────────────────────────────── */
+function getPath(obj, path) {
+  return path.split(/\.|\[(\d+)\]/).filter(Boolean).reduce((o,k) => o?.[k], obj);
+}
+function setPath(obj, path, val) {
+  const keys = [];
+  const re = /([^.\[\]]+)|\[(\d+)\]/g;
+  let m;
+  while((m = re.exec(path))) keys.push(m[1] ?? parseInt(m[2]));
+  let cur = obj;
+  for(let i=0;i<keys.length-1;i++){
+    const k=keys[i], nk=keys[i+1];
+    if(cur[k]==null) cur[k] = typeof nk==='number' ? [] : {};
+    cur=cur[k];
+  }
+  cur[keys[keys.length-1]] = val;
+}
+function deepClone(o) { return JSON.parse(JSON.stringify(o)); }
+
+/* ── FORM RENDERER ──────────────────────────────── */
+function renderForm(resName, values={}) {
+  const def = FORMS[resName];
+  if(!def) return `<p style="color:var(--muted);font-size:.82rem">No form defined for ${resName}.</p>`;
+  return def.sections.map(sec => `
+    <div style="margin-bottom:18px">
+      <div class="section-lbl">${sec.title}</div>
+      <div class="fg" style="margin-top:10px">
+        ${sec.fields.map(f => renderField(f, values[f.id]??'')).join('')}
+      </div>
+    </div>`).join('');
+}
+
+function renderField(f, val) {
+  const req = f.required ? 'required' : '';
+  const ph  = f.placeholder ? `placeholder="${esc(f.placeholder)}"` : '';
+  const hint = f.hint ? `<div style="font-size:.7rem;color:var(--muted);margin-top:2px">${f.hint}</div>` : '';
+
+  if(f.type === 'select') {
+    const opts = (f.options||[]).map(o =>
+      `<option value="${esc(o)}" ${String(val)===String(o)?'selected':''}>${o||'— none —'}</option>`
+    ).join('');
+    return `<div class="ff"><label>${f.label}${f.required?' <span style="color:var(--red)">*</span>':''}</label>
+      <select id="f_${f.id}" ${req}>${opts}</select>${hint}</div>`;
+  }
+  if(f.type === 'textarea') {
+    return `<div class="ff"><label>${f.label}${f.required?' <span style="color:var(--red)">*</span>':''}</label>
+      <textarea id="f_${f.id}" rows="3" ${ph} ${req}>${esc(val)}</textarea>${hint}</div>`;
+  }
+  if(f.type === 'checkbox') {
+    return `<div class="ff" style="flex-direction:row;align-items:center;gap:8px">
+      <input type="checkbox" id="f_${f.id}" ${val?'checked':''} style="width:16px;height:16px;accent-color:var(--accent)" />
+      <label for="f_${f.id}" style="text-transform:none;font-size:.83rem;font-weight:500">${f.label}</label>${hint}</div>`;
+  }
+  // text, date, datetime-local, number
+  return `<div class="ff"><label>${f.label}${f.required?' <span style="color:var(--red)">*</span>':''}</label>
+    <input type="${f.type}" id="f_${f.id}" value="${esc(val)}" ${ph} ${req} />${hint}</div>`;
+}
+
+function collectForm(resName) {
+  const def = FORMS[resName];
+  if(!def) return {};
+  const vals = {};
+  def.sections.forEach(sec => sec.fields.forEach(f => {
+    const el = document.getElementById('f_'+f.id);
+    if(!el) return;
+    vals[f.id] = f.type==='checkbox' ? el.checked : el.value;
+  }));
+  return vals;
+}
+
+function validateForm(resName) {
+  const def = FORMS[resName];
+  if(!def) return true;
+  for(const sec of def.sections) {
+    for(const f of sec.fields) {
+      if(f.required) {
+        const el = document.getElementById('f_'+f.id);
+        if(el && !el.value.trim()) {
+          el.style.borderColor = 'var(--red)';
+          el.focus();
+          toast(`"${f.label}" is required`, 'bad');
+          return false;
+        }
+      }
+    }
+  }
+  return true;
+}
+
+/* ── CREATE MODAL ───────────────────────────────── */
+function showCreate(resName) {
+  const def = RES.find(r=>r.name===resName);
+  const hasFrm = !!FORMS[resName];
+  openModal(`${def.icon} New ${resName}`,
+    hasFrm
+      ? renderForm(resName, {})
+      : `<p style="font-size:.78rem;color:var(--muted);margin-bottom:10px">Enter FHIR JSON for the new resource.</p>
+         <textarea class="json-ed" id="ej" spellcheck="false">${JSON.stringify({resourceType:resName},null,2)}</textarea>
+         <div class="err-msg" id="jerr"></div>`,
+    `<button class="btn btn-primary btn-sm" id="save-create">
+       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="width:13px;height:13px"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+       Create ${resName}
+     </button>
+     <button class="btn btn-ghost btn-sm" onclick="closeModal()">Cancel</button>`);
+
+  document.getElementById('save-create').onclick = async () => {
+    let body;
+    if(hasFrm) {
+      if(!validateForm(resName)) return;
+      const vals = collectForm(resName);
+      body = FORMS[resName].build(vals, null);
+    } else {
+      try { body=JSON.parse(document.getElementById('ej').value); }
+      catch(e) { document.getElementById('jerr').textContent='Invalid JSON: '+e.message; return; }
+    }
+    try { await apiPost(resName, body); toast(`${resName} created`, 'ok'); closeModal(); renderList(resName); }
+    catch(e) { toast(e.message,'bad'); }
+  };
+}
+window.showCreate = showCreate;
+
+/* ── EDIT MODAL ─────────────────────────────────── */
+async function showEdit(resName, id, evt) {
+  if(evt) evt.stopPropagation();
+  const def = RES.find(r=>r.name===resName);
+  const hasFrm = !!FORMS[resName];
+  openModal(`${def.icon} Edit ${resName}`,
+    '<div class="state-box"><span class="spin"></span></div>',
+    `<button class="btn btn-primary btn-sm" id="save-edit">
+       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="width:13px;height:13px"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+       Save Changes
+     </button>
+     <button class="btn btn-ghost btn-sm" onclick="closeModal()">Cancel</button>`);
+
+  let r; try { r=await apiGet(resName,id); } catch(e) { toast(e.message,'bad'); closeModal(); return; }
+
+  if(hasFrm) {
+    const vals = FORMS[resName].read(r);
+    document.getElementById('m-body').innerHTML = renderForm(resName, vals);
+  } else {
+    document.getElementById('m-body').innerHTML =
+      `<textarea class="json-ed" id="ej" spellcheck="false">${JSON.stringify(r,null,2)}</textarea>
+       <div class="err-msg" id="jerr"></div>`;
+  }
+
+  document.getElementById('save-edit').onclick = async () => {
+    let body;
+    if(hasFrm) {
+      if(!validateForm(resName)) return;
+      const vals = collectForm(resName);
+      body = FORMS[resName].build(vals, r);
+    } else {
+      try { body=JSON.parse(document.getElementById('ej').value); }
+      catch(e) { document.getElementById('jerr').textContent='Invalid JSON: '+e.message; return; }
+    }
+    try { await apiPut(resName,id,body); toast(`${resName} updated`,'ok'); closeModal(); const d=RES.find(x=>x.name===resName); if(d) fetchTable(resName,d); }
+    catch(e) { toast(e.message,'bad'); }
+  };
+}
+window.showEdit = showEdit;
+
+/* ── DELETE ─────────────────────────────────────── */
+function confirmDel(resName, id, evt, fromModal=false) {
+  if(evt) evt.stopPropagation();
+  openModal(`Delete ${resName}?`,
+    `<div class="confirm-box">
+      <div class="ci">🗑️</div>
+      <h3>This action cannot be undone.</h3>
+      <p>Delete <strong>${resName}/${id}</strong>?</p>
+    </div>`,
+    `<button class="btn btn-danger btn-sm" id="do-del">Yes, Delete</button>
+     <button class="btn btn-ghost btn-sm" onclick="closeModal()">Cancel</button>`);
+  document.getElementById('do-del').onclick = async () => {
+    try { await apiDel(resName,id); toast(`${resName} deleted`,'ok'); closeModal(); renderList(resName); }
+    catch(e) { toast(e.message,'bad'); }
+  };
+}
+window.confirmDel = confirmDel;
+
+/* ── CONNECTION ─────────────────────────────────── */
+function setConn(ok) {
+  const dot = document.getElementById('conn-dot');
+  const lbl = document.getElementById('conn-label');
+  dot.className = 'conn-indicator ' + (ok?'ok':'err');
+  lbl.textContent = ok ? 'Connected' : 'Error';
+}
+
+/* ── RENDER ─────────────────────────────────────── */
+function render() {
+  if (!S.active) renderDashboard();
+  else renderList(S.active);
+}
+
+/* ── BOOT ───────────────────────────────────────── */
+async function boot() {
+  // Load config from server
+  try {
+    const cfg = await fetch('/config.js').then(r=>r.ok?r.json():null).catch(()=>null);
+    if (cfg) { CFG.baseUrl = cfg.baseUrl||CFG.baseUrl; CFG.apiKey = cfg.apiKey||CFG.apiKey; }
+  } catch {}
+
+  // Update brand URL
+  document.getElementById('brand-url').textContent = CFG.baseUrl || 'not configured';
+
+  setTheme(S.theme);
+  buildNav();
+  render();
+
+  // Events
+  document.getElementById('hamburger').onclick = () => {
+    document.getElementById('sidebar').classList.toggle('open');
+    document.getElementById('sidebar-veil').classList.toggle('open');
+  };
+  document.getElementById('sidebar-veil').onclick = closeSidebar;
+  document.getElementById('theme-toggle').onclick = () => setTheme(S.theme==='dark'?'light':'dark');
+  document.getElementById('m-close').onclick = closeModal;
+  document.getElementById('veil').onclick = e => { if(e.target===document.getElementById('veil')) closeModal(); };
+  document.getElementById('refresh-btn').onclick = render;
+  document.getElementById('nav-filter').oninput = e => buildNav(e.target.value);
+
+  // Health check
+  try {
+    await fetch(CFG.baseUrl.replace(/\/$/,'')+'/health').then(r=>r.json());
+    setConn(true);
+  } catch { setConn(false); }
+
+  // Background count load
+  loadCounts();
+}
+
+window.addEventListener('DOMContentLoaded', boot);
+</script>
+</body>
+</html>

@@ -1,0 +1,16 @@
+{
+  "id": "presidio",
+  "name": "MS Presidio",
+  "description": "Microsoft Presidio PII detection and anonymization. Three services: Analyzer (port 5002), Anonymizer (port 5001), Image Redactor (port 5003).",
+  "profile": "security",
+  "composeService": "presidio-analyzer",
+  "port": 5002,
+  "healthPath": "/health",
+  "uiPath": "/",
+  "category": "Security",
+  "dependsOn": [],
+  "requiredSecrets": [],
+  "tags": ["pii", "privacy", "nlp", "security"],
+  "docsUrl": "https://github.com/lbrenman/presidio-codespaces",
+  "notes": "Images are large (~2 GB each). First pull takes 3–6 minutes. Exposes 3 ports: 5001 (anonymizer), 5002 (analyzer), 5003 (image redactor)."
+}

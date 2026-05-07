@@ -1,0 +1,7 @@
+{
+  "name": "Orders API",
+  "basePath": "orders",
+  "resource": "orders",
+  "description": "Manage e-commerce orders with line items, linked to contacts and products",
+  "version": "1.0.0"
+}
