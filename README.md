@@ -2,7 +2,7 @@
 
 A unified GitHub Codespace that bundles multiple demo and integration-testing services — APIs, streaming servers, AI tools, security services, and observability platforms — all orchestrated from a single dashboard.
 
-[![Open in GitHub Codespaces](https://codespaces.new/lbrenman/codespaces/badge.svg)](https://codespaces.new/lbrenman/demobench-codespace)
+[![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/lbrenman/demobench-codespace)
 
 ---
 
