@@ -30,9 +30,8 @@ async function seedAll() {
     await seedOAuthClients(client);
 
     // Discover API plugin seeds
-    const dirs = fs.readdirSync(APIS_DIR, { withFileTypes: true })
-      .filter(d => d.isDirectory())
-      .map(d => d.name);
+    const dirs = fs.readdirSync(APIS_DIR)
+      .filter(name => fs.statSync(path.join(APIS_DIR, name)).isDirectory());
 
     // Sort to ensure contacts seeds before orders (foreign key dependency)
     const ordered = ['contacts', 'products', 'orders'].filter(d => dirs.includes(d));
@@ -68,10 +67,16 @@ async function seedAll() {
 
     for (const dir of allDirs) {
       const seedPath = path.join(APIS_DIR, dir, 'data', 'seed.js');
-      if (fs.existsSync(seedPath)) {
-        console.log(`\n📦 Seeding ${dir}...`);
+      try {
         const seedFn = require(seedPath);
+        console.log(`\n📦 Seeding ${dir}...`);
         await seedFn(client);
+      } catch (e) {
+        if (e.code === 'MODULE_NOT_FOUND') {
+          console.log(`   ⚠️  No seed file for ${dir}, skipping.`);
+        } else {
+          throw e;
+        }
       }
     }
 
